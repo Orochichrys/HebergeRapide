@@ -125,7 +125,7 @@ const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
                         className="w-full bg-transparent px-4 py-2 text-white outline-none"
                       />
                       <span className="bg-dark-border/50 text-gray-400 px-3 py-2 text-sm border-l border-dark-border">
-                          .hebergerapide.com
+                          .heberge-rapide.vercel.app
                       </span>
                   </div>
                   {subdomainError && <p className="text-red-400 text-xs mt-1">{subdomainError}</p>}

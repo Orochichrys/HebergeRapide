@@ -25,8 +25,9 @@ const AppContent: React.FC = () => {
     await new Promise(resolve => setTimeout(resolve, DEMO_DELAY));
 
     const id = Math.random().toString(36).substr(2, 9);
-    // Use hash based URL for the demo to work without server-side subdomain configuration
-    const mockUrl = `${window.location.origin}/#/s/${subdomain}`;
+    // Encode the deployment data in the URL so it can be shared publicly
+    const encodedData = btoa(encodeURIComponent(JSON.stringify({ name, code })));
+    const mockUrl = `${window.location.origin}/#/s/${subdomain}?d=${encodedData}`;
 
     const newDeployment: Deployment = {
       id,
@@ -83,26 +84,43 @@ const AppContent: React.FC = () => {
 // Wrapper to find the deployment from storage before rendering SitePreview
 const SiteRouteWrapper = () => {
   const navigate = useNavigate();
-  // HashRouter puts the path in the hash. 
-  // Window location hash looks like: #/s/subdomain
-  // We need to parse this manually or rely on useParams if we were inside the route component correctly.
-  // Using React Router hooks is better.
-  
-  // Actually, useParams is available here because SiteRouteWrapper is an element of a Route
   const path = window.location.hash;
-  const subdomainFromUrl = path.split('/s/')[1]?.split('?')[0]; 
+  const subdomainFromUrl = path.split('/s/')[1]?.split('?')[0];
+  const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+  const encodedData = urlParams.get('d');
   
   const [deployment, setDeployment] = useState<Deployment | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (subdomainFromUrl) {
-        const all = getDeployments();
-        const found = all.find(d => d.subdomain === subdomainFromUrl);
-        setDeployment(found || null);
+      // First, try to get from localStorage (for the owner)
+      const all = getDeployments();
+      let found = all.find(d => d.subdomain === subdomainFromUrl);
+      
+      // If not found in localStorage, try to decode from URL (for public access)
+      if (!found && encodedData) {
+        try {
+          const decoded = JSON.parse(decodeURIComponent(atob(encodedData)));
+          found = {
+            id: subdomainFromUrl,
+            subdomain: subdomainFromUrl,
+            name: decoded.name,
+            code: decoded.code,
+            createdAt: Date.now(),
+            status: 'live' as const,
+            url: window.location.href,
+            visitors: 0
+          };
+        } catch (e) {
+          console.error('Error decoding deployment data:', e);
+        }
+      }
+      
+      setDeployment(found || null);
     }
     setLoading(false);
-  }, [subdomainFromUrl]);
+  }, [subdomainFromUrl, encodedData]);
 
   if (loading) return <div className="h-screen bg-dark-bg flex items-center justify-center text-white">Chargement...</div>;
 

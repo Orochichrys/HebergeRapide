@@ -91,14 +91,14 @@ const ApiDocs: React.FC = () => {
 
               <div className="bg-[#0d1117] p-4 rounded-lg font-mono text-sm text-gray-300 overflow-x-auto relative group">
                 <button
-                  onClick={() => copyToClipboard(`curl -X POST https://api.hebergerapide.com/v1/deploy \\
+                  onClick={() => copyToClipboard(`curl -X POST https://heberge-rapide.vercel.app/v1/deploy \\
   -H "Authorization: Bearer ${keys[0]?.key || 'YOUR_API_KEY'}" \\
   -d '{"name": "mon-site", "html": "<h1>Hello</h1>"}'`)}
                   className="absolute top-2 right-2 p-1.5 rounded bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
                 >
                   <Copy className="w-4 h-4 text-white" />
                 </button>
-                <pre><span className="text-purple-400">curl</span> -X POST https://api.hebergerapide.com/v1/deploy \
+                <pre><span className="text-purple-400">curl</span> -X POST https://heberge-rapide.vercel.app/v1/deploy \
                   -H <span className="text-green-400">&quot;Authorization: Bearer {keys[0]?.key || 'YOUR_API_KEY'}&quot;</span> \
                   -d <span className="text-yellow-400">&apos;{jsonPayload}&apos;</span></pre>
               </div>
@@ -109,7 +109,7 @@ const ApiDocs: React.FC = () => {
                   {`{
   "id": "dep_123456789",
   "status": "live",
-  "url": "https://hebergerapide.com/s/mon-site-xyz"
+  "url": "https://heberge-rapide.vercel.app/s/mon-site-xyz"
 }`}
                 </div>
               </div>
@@ -125,7 +125,7 @@ const ApiDocs: React.FC = () => {
               <p className="text-gray-300 mb-4">Récupère la liste de tous vos déploiements actifs.</p>
 
               <div className="bg-[#0d1117] p-4 rounded-lg font-mono text-sm text-gray-300">
-                <pre><span className="text-purple-400">curl</span> https://api.hebergerapide.com/v1/sites \
+                <pre><span className="text-purple-400">curl</span> https://heberge-rapide.vercel.app/v1/sites \
                   -H <span className="text-green-400">"Authorization: Bearer {keys[0]?.key || 'YOUR_API_KEY'}"</span></pre>
               </div>
             </div>
