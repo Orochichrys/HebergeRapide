@@ -27,6 +27,14 @@ const AppContent: React.FC = () => {
     if (token) {
       fetchDeployments();
     }
+
+    // Initialize Grok AI with Environment Variable
+    const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    if (openRouterKey) {
+      import('./services/geminiService').then(({ initAI }) => {
+        initAI(openRouterKey);
+      });
+    }
   }, [token]);
 
   const fetchDeployments = async () => {
