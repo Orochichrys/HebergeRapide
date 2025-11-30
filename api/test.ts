@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { kv } from '@vercel/kv';
-import bcrypt from 'bcryptjs';
+import { hashPassword, generateToken } from './utils/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const results: any = {
@@ -12,14 +12,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     try {
-        // Test Bcrypt
-        console.log('Testing bcrypt...');
-        const salt = await bcrypt.genSalt(10);
-        const hash = await bcrypt.hash('test', salt);
-        results.checks.bcrypt = 'OK';
+        // Test Auth Utils Import & Bcrypt
+        console.log('Testing hashPassword from utils...');
+        await hashPassword('test');
+        results.checks.authUtils_bcrypt = 'OK';
     } catch (e: any) {
-        console.error('Bcrypt failed:', e);
-        results.checks.bcrypt = `FAILED: ${e.message}`;
+        console.error('Auth Utils Bcrypt failed:', e);
+        results.checks.authUtils_bcrypt = `FAILED: ${e.message}`;
+    }
+
+    try {
+        // Test JWT
+        console.log('Testing JWT...');
+        const token = generateToken('test_user', 'test@example.com');
+        if (token && typeof token === 'string' && token.length > 10) {
+            results.checks.jwt = 'OK';
+        } else {
+            results.checks.jwt = 'FAILED: Token generation returned invalid result';
+        }
+    } catch (e: any) {
+        console.error('JWT failed:', e);
+        results.checks.jwt = `FAILED: ${e.message}`;
     }
 
     try {
