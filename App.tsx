@@ -117,7 +117,7 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Si on visualise un site, afficher que SiteRouteWrapper
+  // Visualisation de site : aucun background
   if (isViewingSite) {
     return (
       <Routes>
@@ -212,14 +212,14 @@ const SiteRouteWrapper = () => {
     }
   }, [subdomainFromUrl]);
 
-  if (loading) return <div className="h-screen bg-white flex items-center justify-center text-gray-800">Chargement...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center">Chargement...</div>;
 
   if (!deployment) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-dark-bg">
-        <h1 className="text-4xl font-bold mb-4 text-white">404</h1>
-        <p className="text-gray-400 mb-4">Site introuvable</p>
-        <button onClick={() => navigate('/')} className="text-brand-400 hover:underline">
+      <div className="flex flex-col items-center justify-center h-screen">
+        <h1 className="text-4xl font-bold mb-4">404</h1>
+        <p className="mb-4">Site introuvable</p>
+        <button onClick={() => navigate('/')} className="text-blue-500 hover:underline">
           Retour
         </button>
       </div>

@@ -8,7 +8,7 @@ interface SitePreviewProps {
 const SitePreview: React.FC<SitePreviewProps> = ({ deployment }) => {
   return (
     <iframe
-      srcdoc={deployment.code}
+      srcDoc={deployment.code}
       className="w-full h-screen border-none"
       title="Site Preview"
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
