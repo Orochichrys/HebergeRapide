@@ -11,6 +11,11 @@ export const getDeployments = (): Deployment[] => {
   return data ? JSON.parse(data) : [];
 };
 
+export const isSubdomainTaken = (subdomain: string): boolean => {
+  const deployments = getDeployments();
+  return deployments.some(d => d.subdomain.toLowerCase() === subdomain.toLowerCase());
+};
+
 export const saveDeployment = (deployment: Deployment): void => {
   const data = localStorage.getItem(DEPLOYMENTS_KEY);
   const all: Deployment[] = data ? JSON.parse(data) : [];

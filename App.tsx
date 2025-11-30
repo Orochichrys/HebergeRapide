@@ -18,18 +18,19 @@ const AppContent: React.FC = () => {
     setDeployments(getDeployments());
   }, []);
 
-  const handleDeploy = async (name: string, code: string) => {
+  const handleDeploy = async (name: string, subdomain: string, code: string) => {
     setIsDeploying(true);
     
     // Simulate network delay for "building"
     await new Promise(resolve => setTimeout(resolve, DEMO_DELAY));
 
     const id = Math.random().toString(36).substr(2, 9);
-    // In a real app, this URL would be a subdomain. Here we use a hash route pattern we can link to.
-    const mockUrl = `${window.location.origin}/#/site/${id}`;
+    // Use hash based URL for the demo to work without server-side subdomain configuration
+    const mockUrl = `${window.location.origin}/#/s/${subdomain}`;
 
     const newDeployment: Deployment = {
       id,
+      subdomain,
       name,
       code,
       createdAt: Date.now(),
@@ -70,7 +71,7 @@ const AppContent: React.FC = () => {
           
           {/* Public Route for viewing sites */}
           <Route 
-            path="/site/:id" 
+            path="/s/:subdomain" 
             element={<SiteRouteWrapper />} 
           />
         </Routes>
@@ -82,18 +83,26 @@ const AppContent: React.FC = () => {
 // Wrapper to find the deployment from storage before rendering SitePreview
 const SiteRouteWrapper = () => {
   const navigate = useNavigate();
-  const path = window.location.hash; // #/site/123
-  const id = path.split('/site/')[1];
+  // HashRouter puts the path in the hash. 
+  // Window location hash looks like: #/s/subdomain
+  // We need to parse this manually or rely on useParams if we were inside the route component correctly.
+  // Using React Router hooks is better.
+  
+  // Actually, useParams is available here because SiteRouteWrapper is an element of a Route
+  const path = window.location.hash;
+  const subdomainFromUrl = path.split('/s/')[1]?.split('?')[0]; 
   
   const [deployment, setDeployment] = useState<Deployment | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const all = getDeployments();
-    const found = all.find(d => d.id === id);
-    setDeployment(found || null);
+    if (subdomainFromUrl) {
+        const all = getDeployments();
+        const found = all.find(d => d.subdomain === subdomainFromUrl);
+        setDeployment(found || null);
+    }
     setLoading(false);
-  }, [id]);
+  }, [subdomainFromUrl]);
 
   if (loading) return <div className="h-screen bg-dark-bg flex items-center justify-center text-white">Chargement...</div>;
 

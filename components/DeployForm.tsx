@@ -1,20 +1,39 @@
-import React, { useState } from 'react';
-import { Upload, Code, Rocket, Sparkles, CheckCircle, AlertTriangle, FileCode } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Upload, Code, Rocket, Sparkles, CheckCircle, AlertTriangle, FileCode, Globe } from 'lucide-react';
 import { analyzeCodeWithGemini } from '../services/geminiService';
+import { isSubdomainTaken } from '../services/storageService';
 import { CodeAnalysis } from '../types';
 import CodeEditor from './CodeEditor';
 
 interface DeployFormProps {
-  onDeploy: (name: string, code: string) => Promise<void>;
+  onDeploy: (name: string, subdomain: string, code: string) => Promise<void>;
   isDeploying: boolean;
 }
 
 const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
   const [siteName, setSiteName] = useState('');
+  const [subdomain, setSubdomain] = useState('');
   const [code, setCode] = useState('');
   const [mode, setMode] = useState<'upload' | 'editor'>('editor');
   const [analysis, setAnalysis] = useState<CodeAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [subdomainError, setSubdomainError] = useState('');
+
+  // Auto-generate subdomain from site name if subdomain is empty or matches previous auto-gen
+  useEffect(() => {
+    if (siteName) {
+        const slug = siteName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+        if (!subdomain || subdomain === slug.slice(0, slug.length - 1)) {
+            setSubdomain(slug);
+        }
+    }
+  }, [siteName]);
+
+  const handleSubdomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    setSubdomain(value);
+    setSubdomainError('');
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,8 +70,20 @@ const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (siteName && code) {
-      onDeploy(siteName, code);
+    setSubdomainError('');
+
+    if (subdomain.length < 3) {
+        setSubdomainError('Le sous-domaine doit contenir au moins 3 caractères.');
+        return;
+    }
+
+    if (isSubdomainTaken(subdomain)) {
+        setSubdomainError('Ce sous-domaine est déjà pris. Veuillez en choisir un autre.');
+        return;
+    }
+
+    if (siteName && subdomain && code) {
+      onDeploy(siteName, subdomain, code);
     }
   };
 
@@ -70,16 +101,35 @@ const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
         <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column: Input */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Nom du projet</label>
-              <input
-                type="text"
-                required
-                value={siteName}
-                onChange={(e) => setSiteName(e.target.value)}
-                placeholder="mon-super-site"
-                className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Nom du projet</label>
+                  <input
+                    type="text"
+                    required
+                    value={siteName}
+                    onChange={(e) => setSiteName(e.target.value)}
+                    placeholder="Mon Super Site"
+                    className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Sous-domaine</label>
+                  <div className={`flex items-center bg-dark-bg border rounded-lg overflow-hidden transition-all ${subdomainError ? 'border-red-500' : 'border-dark-border focus-within:ring-2 focus-within:ring-brand-500'}`}>
+                      <input
+                        type="text"
+                        required
+                        value={subdomain}
+                        onChange={handleSubdomainChange}
+                        placeholder="mon-site"
+                        className="w-full bg-transparent px-4 py-2 text-white outline-none"
+                      />
+                      <span className="bg-dark-border/50 text-gray-400 px-3 py-2 text-sm border-l border-dark-border">
+                          .hebergerapide.com
+                      </span>
+                  </div>
+                  {subdomainError && <p className="text-red-400 text-xs mt-1">{subdomainError}</p>}
+                </div>
             </div>
 
             <div>
@@ -146,7 +196,7 @@ const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
                 </button>
                 <button
                   type="submit"
-                  disabled={!siteName || !code || isDeploying}
+                  disabled={!siteName || !code || isDeploying || !!subdomainError}
                   className="flex-[2] bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white py-3 rounded-lg font-medium transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2"
                 >
                   {isDeploying ? (

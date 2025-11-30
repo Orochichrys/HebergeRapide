@@ -1,5 +1,6 @@
 export interface Deployment {
   id: string;
+  subdomain: string;
   name: string;
   code: string; // Storing HTML directly for this demo
   createdAt: number;

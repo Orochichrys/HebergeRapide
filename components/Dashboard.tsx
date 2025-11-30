@@ -73,7 +73,7 @@ const Dashboard: React.FC<DashboardProps> = ({ deployments, onDelete }) => {
 
               <div className="flex items-center gap-3 pt-4 border-t border-dark-border">
                 <Link 
-                  to={`/site/${deploy.id}`}
+                  to={`/s/${deploy.subdomain}`}
                   className="flex-1 bg-dark-bg hover:bg-dark-border text-white py-2 rounded text-sm text-center transition-colors"
                 >
                   Voir le site
