@@ -1,10 +1,5 @@
 import React, { useMemo } from 'react';
 import { Deployment } from '../types';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
-import React, { useMemo } from 'react';
-import { Deployment } from '../types';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 interface SitePreviewProps {
   deployment: Deployment;
