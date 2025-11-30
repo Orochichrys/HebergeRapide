@@ -44,24 +44,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'DELETE') {
         try {
-            // Get the site to verify ownership
-            const site = await kv.hgetall(`site:${id}`);
+            // Get the deployment to verify ownership
+            const deployment = await kv.get(`deployment:${id}`);
 
-            if (!site) {
+            if (!deployment) {
                 return res.status(404).json({ error: 'Site not found' });
             }
 
-            // Verify the user owns this site
-            if (site.userId !== decoded.userId) {
+            const deploymentData = typeof deployment === 'string' ? JSON.parse(deployment) : deployment;
+
+            // Verify the user owns this deployment
+            if (deploymentData.userId !== decoded.userId) {
                 return res.status(403).json({ error: 'Forbidden: You do not own this site' });
             }
 
-            // Delete the site from Redis
-            await kv.del(`site:${id}`);
+            // Delete the deployment from Redis
+            await kv.del(`deployment:${id}`);
 
-            // Remove from user's sites list
-            const userSitesKey = `user:${decoded.userId}:sites`;
-            await kv.srem(userSitesKey, id);
+            // Remove from user's deployments list
+            const userDeploymentsKey = `user:${decoded.userId}:deployments`;
+            await kv.srem(userDeploymentsKey, id);
 
             return res.status(204).end();
         } catch (error) {
