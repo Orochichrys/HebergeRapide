@@ -31,7 +31,7 @@ const AppContent: React.FC = () => {
     // Initialize Grok AI with Environment Variable
     const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
     if (openRouterKey) {
-      import('./services/geminiService').then(({ initAI }) => {
+      import('./services/aiService').then(({ initAI }) => {
         initAI(openRouterKey);
       });
     }
@@ -145,25 +145,8 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-dark-bg text-gray-100 font-sans selection:bg-brand-500/30">
-      <Navbar />
-      <div className="absolute top-4 right-4 flex items-center gap-4">
-        <button
-          onClick={() => navigate('/profile')}
-          className="text-gray-400 hover:text-white transition-colors flex items-center gap-2"
-        >
-          <span className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 font-bold">
-            {user?.name?.charAt(0).toUpperCase()}
-          </span>
-          <span>{user?.name}</span>
-        </button>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-red-400 hover:text-red-300"
-        >
-          Déconnexion
-        </button>
-      </div>
+    <div className="min-h-screen bg-dark-bg text-gray-100 font-sans selection:bg-brand-500/30 transition-colors duration-300">
+      <Navbar user={user} onLogout={handleLogout} />
       <main>
         <Routes>
           <Route path="/" element={

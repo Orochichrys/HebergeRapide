@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Code, Rocket, Sparkles, CheckCircle, AlertTriangle, FileCode, Globe } from 'lucide-react';
-import { analyzeCodeWithGemini } from '../services/geminiService';
+import { analyzeCodeWithGemini } from '../services/aiService';
 import { isSubdomainTaken } from '../services/storageService';
 import { CodeAnalysis } from '../types';
 import CodeEditor from './CodeEditor';
@@ -216,7 +216,7 @@ const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
           <div className="bg-dark-bg rounded-lg p-6 border border-dark-border flex flex-col">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-purple-400" />
-              Rapport IA Grok
+              Rapport IA
             </h3>
 
             {!analysis && !isAnalyzing && (
