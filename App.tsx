@@ -189,7 +189,7 @@ const SiteRouteWrapper = () => {
     if (subdomainFromUrl) {
       const fetchDeployment = async () => {
         try {
-          const response = await fetch(`/api/v1/site/${subdomainFromUrl}`);
+          const response = await fetch(`/api/site/${subdomainFromUrl}`);
           if (response.ok) {
             const found = await response.json();
             setDeployment(found);
