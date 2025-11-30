@@ -6,23 +6,31 @@ export default async function handler(
     req: VercelRequest,
     res: VercelResponse
 ) {
+    console.log('Register handler called');
+    console.log('Environment check:', {
+        KV_URL: !!process.env.KV_REST_API_URL,
+        KV_TOKEN: !!process.env.KV_REST_API_TOKEN
+    });
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
-
     try {
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        console.log('Checking if user exists:', email);
         // Check if user exists
         const existingUser = await kv.get(`user:${email}`);
         if (existingUser) {
             return res.status(409).json({ error: 'User already exists' });
         }
 
+        console.log('Hashing password...');
         // Hash password
         const hashedPassword = await hashPassword(password);
 
@@ -36,11 +44,16 @@ export default async function handler(
             createdAt: Date.now()
         };
 
+        console.log('Saving user to KV...');
         await kv.set(`user:${email}`, JSON.stringify(user));
 
         return res.status(201).json({ message: 'User created successfully' });
-    } catch (error) {
-        console.error('Error creating user:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+    } catch (error: any) {
+        console.error('Error in register handler:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            details: error.message,
+            stack: error.stack
+        });
     }
 }
