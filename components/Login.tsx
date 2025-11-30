@@ -29,8 +29,8 @@ const Login: React.FC = () => {
           <div className="bg-brand-500/10 p-3 rounded-full mb-3">
             <LogIn className="w-6 h-6 text-brand-400" />
           </div>
-          <h2 className="text-2xl font-bold text-white">Connexion</h2>
-          <p className="text-gray-400 text-sm">Accédez à vos déploiements</p>
+          <h2 className="text-2xl font-bold text-foreground">Connexion</h2>
+          <p className="text-muted-foreground text-sm">Accédez à vos déploiements</p>
         </div>
 
         {error && (
@@ -41,23 +41,23 @@ const Login: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-brand-500 outline-none"
+              className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-brand-500 outline-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Mot de passe</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Mot de passe</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-brand-500 outline-none"
+              className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground focus:ring-2 focus:ring-brand-500 outline-none"
             />
           </div>
           <button
@@ -67,8 +67,8 @@ const Login: React.FC = () => {
             Se connecter
           </button>
         </form>
-        
-        <div className="mt-6 text-center text-sm text-gray-400">
+
+        <div className="mt-6 text-center text-sm text-muted-foreground">
           Pas encore de compte ?{' '}
           <Link to="/register" className="text-brand-400 hover:underline">
             S'inscrire

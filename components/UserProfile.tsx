@@ -62,7 +62,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, token, onUpdateUser }) 
                 <div className="p-2 bg-brand-500/10 rounded-lg">
                     <UserIcon className="w-6 h-6 text-brand-400" />
                 </div>
-                <h2 className="text-xl font-semibold text-white">Mon Profil</h2>
+                <h2 className="text-xl font-semibold text-foreground">Mon Profil</h2>
             </div>
 
             {message && (
@@ -75,57 +75,57 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, token, onUpdateUser }) 
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Email</label>
                     <input
                         type="email"
                         value={user.email}
                         disabled
-                        className="w-full px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-500 cursor-not-allowed"
+                        className="w-full px-4 py-2 bg-background border border-border rounded-lg text-muted-foreground cursor-not-allowed"
                     />
-                    <p className="text-xs text-gray-600 mt-1">L'email ne peut pas être modifié.</p>
+                    <p className="text-xs text-muted-foreground mt-1">L'email ne peut pas être modifié.</p>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Nom</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Nom</label>
                     <div className="relative">
-                        <UserIcon className="absolute left-3 top-2.5 w-5 h-5 text-gray-500" />
+                        <UserIcon className="absolute left-3 top-2.5 w-5 h-5 text-muted-foreground" />
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
+                            className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
                             required
                         />
                     </div>
                 </div>
 
                 <div className="pt-4 border-t border-dark-border">
-                    <h3 className="text-sm font-medium text-gray-300 mb-4">Changer le mot de passe</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-4">Changer le mot de passe</h3>
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1">Nouveau mot de passe</label>
+                            <label className="block text-sm font-medium text-muted-foreground mb-1">Nouveau mot de passe</label>
                             <div className="relative">
-                                <Lock className="absolute left-3 top-2.5 w-5 h-5 text-gray-500" />
+                                <Lock className="absolute left-3 top-2.5 w-5 h-5 text-muted-foreground" />
                                 <input
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
+                                    className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
                                     placeholder="Laisser vide pour ne pas changer"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-1">Confirmer le mot de passe</label>
+                            <label className="block text-sm font-medium text-muted-foreground mb-1">Confirmer le mot de passe</label>
                             <div className="relative">
-                                <Lock className="absolute left-3 top-2.5 w-5 h-5 text-gray-500" />
+                                <Lock className="absolute left-3 top-2.5 w-5 h-5 text-muted-foreground" />
                                 <input
                                     type="password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
+                                    className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
                                     placeholder="Confirmer le nouveau mot de passe"
                                 />
                             </div>

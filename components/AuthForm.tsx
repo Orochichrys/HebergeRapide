@@ -49,7 +49,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-dark-bg text-gray-100">
+        <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
             <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md border border-gray-700">
                 <h2 className="text-2xl font-bold mb-6 text-center text-brand-400">
                     {isLogin ? 'Connexion' : 'Inscription'}
@@ -106,7 +106,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
                     </button>
                 </form>
 
-                <div className="mt-4 text-center text-sm text-gray-400">
+                <div className="mt-4 text-center text-sm text-muted-foreground">
                     {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}
                     <button
                         onClick={() => {

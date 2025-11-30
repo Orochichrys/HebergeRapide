@@ -16,6 +16,8 @@
     --border: 226 232 240;
     /* Slate 200 */
     --input: 226 232 240;
+    --muted-foreground: 100 116 139;
+    /* Slate 500 */
   }
 
   .dark {
@@ -29,6 +31,8 @@
     --border: 51 65 85;
     /* Slate 700 */
     --input: 51 65 85;
+    --muted-foreground: 148 163 184;
+    /* Slate 400 */
   }
 }
 

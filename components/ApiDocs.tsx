@@ -26,8 +26,8 @@ const ApiDocs: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-white mb-4">API Développeur</h1>
-        <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+        <h1 className="text-4xl font-bold text-foreground mb-4">API Développeur</h1>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           Intégrez HébergeRapide directement dans vos pipelines CI/CD. Déployez programmatiquement.
         </p>
       </div>
@@ -36,10 +36,10 @@ const ApiDocs: React.FC = () => {
 
         {/* API Key Management */}
         <div className="bg-dark-card border border-dark-border rounded-xl p-6 lg:col-span-1 h-fit">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
             <Key className="w-5 h-5 text-yellow-400" /> Vos Clés API
           </h3>
-          <p className="text-sm text-gray-400 mb-6">
+          <p className="text-sm text-muted-foreground mb-6">
             Ces clés sont stockées localement dans votre navigateur pour cette démo.
           </p>
 
@@ -58,7 +58,7 @@ const ApiDocs: React.FC = () => {
                   </code>
                   <button
                     onClick={() => copyToClipboard(k.key)}
-                    className="text-gray-500 hover:text-white"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     {copied === k.key ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                   </button>
@@ -100,12 +100,12 @@ const ApiDocs: React.FC = () => {
   -d '{"name": "mon-site", "html": "<h1>Hello</h1>"}'`)}
                     className="absolute top-2 right-2 p-1.5 rounded bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
                   >
-                    <Copy className="w-4 h-4 text-white" />
+                    <Copy className="w-4 h-4 text-foreground" />
                   </button>
                   <pre><span className="text-purple-400">curl</span> -X POST https://heberge-rapide.vercel.app/api/v1/deploy \
-                  -H <span className="text-green-400">&quot;Authorization: Bearer {keys[0]?.key || 'YOUR_API_KEY'}&quot;</span> \
-                  -H <span className="text-green-400">&quot;Content-Type: application/json&quot;</span> \
-                  -d <span className="text-yellow-400">&apos;{jsonPayload}&apos;</span></pre>
+                    -H <span className="text-green-400">&quot;Authorization: Bearer {keys[0]?.key || 'YOUR_API_KEY'}&quot;</span> \
+                    -H <span className="text-green-400">&quot;Content-Type: application/json&quot;</span> \
+                    -d <span className="text-yellow-400">&apos;{jsonPayload}&apos;</span></pre>
                 </div>
 
                 {/* Windows PowerShell */}
@@ -115,17 +115,17 @@ const ApiDocs: React.FC = () => {
                     onClick={() => copyToClipboard(`curl.exe -X POST https://heberge-rapide.vercel.app/api/v1/deploy -H "Authorization: Bearer ${keys[0]?.key || 'YOUR_API_KEY'}" -H "Content-Type: application/json" -d "{\\"name\\": \\"mon-site\\", \\"html\\": \\"<h1>Hello</h1>\\"}"`)}
                     className="absolute top-2 right-2 p-1.5 rounded bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
                   >
-                    <Copy className="w-4 h-4 text-white" />
+                    <Copy className="w-4 h-4 text-foreground" />
                   </button>
                   <pre><span className="text-purple-400">curl.exe</span> -X POST https://heberge-rapide.vercel.app/api/v1/deploy <span className="text-gray-500">`</span>
-                  -H <span className="text-green-400">&quot;Authorization: Bearer {keys[0]?.key || 'YOUR_API_KEY'}&quot;</span> <span className="text-gray-500">`</span>
-                  -H <span className="text-green-400">&quot;Content-Type: application/json&quot;</span> <span className="text-gray-500">`</span>
-                  -d <span className="text-yellow-400">&quot;{`{`}&quot;name&quot;: &quot;mon-site&quot;, &quot;html&quot;: &quot;&lt;h1&gt;Hello&lt;/h1&gt;&quot;{`}`}&quot;</span></pre>
+                    -H <span className="text-green-400">&quot;Authorization: Bearer {keys[0]?.key || 'YOUR_API_KEY'}&quot;</span> <span className="text-gray-500">`</span>
+                    -H <span className="text-green-400">&quot;Content-Type: application/json&quot;</span> <span className="text-gray-500">`</span>
+                    -d <span className="text-yellow-400">&quot;{`{`}&quot;name&quot;: &quot;mon-site&quot;, &quot;html&quot;: &quot;&lt;h1&gt;Hello&lt;/h1&gt;&quot;{`}`}&quot;</span></pre>
                 </div>
               </div>
 
               <div className="mt-4">
-                <h4 className="text-sm font-semibold text-white mb-2">Réponse (200 OK)</h4>
+                <h4 className="text-sm font-semibold text-foreground mb-2">Réponse (200 OK)</h4>
                 <div className="bg-[#0d1117] p-4 rounded-lg font-mono text-sm text-blue-300">
                   {`{
   "id": "dep_123456789",

@@ -24,7 +24,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, placeholder }) 
         highlight={highlight}
         padding={16}
         placeholder={placeholder}
-        className="min-h-[300px] text-gray-300"
+        className="min-h-[300px] text-foreground"
         style={{
           fontFamily: '"Fira Code", "Fira Mono", monospace',
           fontSize: 14,
@@ -32,7 +32,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, placeholder }) 
         }}
         textareaClassName="focus:outline-none"
       />
-      <div className="absolute top-2 right-2 text-[10px] text-gray-600 bg-dark-card px-2 py-1 rounded select-none pointer-events-none">
+      <div className="absolute top-2 right-2 text-[10px] text-muted-foreground bg-card px-2 py-1 rounded select-none pointer-events-none">
         HTML
       </div>
     </div>
