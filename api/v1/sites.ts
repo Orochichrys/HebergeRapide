@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { kv } from '@vercel/kv';
+import { verifyToken } from '../../utils/auth';
 
 export default async function handler(
     req: VercelRequest,
@@ -16,25 +17,27 @@ export default async function handler(
         return res.status(401).json({ error: 'Unauthorized: Missing or invalid Authorization header' });
     }
 
-    const apiKey = authHeader.replace('Bearer ', '');
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = verifyToken(token);
 
-    // Vérifier que la clé API existe
-    if (!apiKey.startsWith('hr_live_')) {
-        return res.status(401).json({ error: 'Unauthorized: Invalid API key format' });
+    if (!decoded) {
+        return res.status(401).json({ error: 'Unauthorized: Invalid token' });
     }
 
+    const userId = decoded.userId;
+
     try {
-        // Récupérer tous les IDs de déploiements pour cette clé API
-        const deploymentIds = await kv.smembers(`api:${apiKey}:deployments`);
+        // Récupérer tous les IDs de déploiements pour cet utilisateur
+        const deploymentIds = await kv.smembers(`user:${userId}:deployments`);
 
         // Récupérer tous les déploiements
         const deployments = await Promise.all(
             (deploymentIds as string[]).map(async (id: string) => {
                 const data = await kv.get(`deployment:${id}`);
                 if (data) {
-                    const deployment = JSON.parse(data as string);
-                    // Exclure le code et l'API key de la réponse
-                    const { code, apiKey: _, ...rest } = deployment;
+                    const deployment = typeof data === 'string' ? JSON.parse(data) : data;
+                    // Exclure le code et l'userId de la réponse
+                    const { code, userId: _, ...rest } = deployment;
                     return rest;
                 }
                 return null;

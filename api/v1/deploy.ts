@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { kv } from '@vercel/kv';
+import { verifyToken } from '../../utils/auth';
 
 interface DeployRequest {
   name: string;
@@ -21,12 +22,14 @@ export default async function handler(
     return res.status(401).json({ error: 'Unauthorized: Missing or invalid Authorization header' });
   }
 
-  const apiKey = authHeader.replace('Bearer ', '');
+  const token = authHeader.replace('Bearer ', '');
+  const decoded = verifyToken(token);
 
-  // Vérifier que la clé API existe (pour la démo, on accepte toutes les clés qui commencent par hr_live_)
-  if (!apiKey.startsWith('hr_live_')) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid API key format' });
+  if (!decoded) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
   }
+
+  const userId = decoded.userId;
 
   // Valider le body
   const { name, html }: DeployRequest = req.body;
@@ -53,15 +56,15 @@ export default async function handler(
     status: 'live',
     url: `${origin}/#/s/${subdomain}`,
     visitors: 0,
-    apiKey // Associer à la clé API
+    userId // Associer à l'utilisateur
   };
 
   try {
     // Stocker le déploiement dans KV
     await kv.set(`deployment:${id}`, JSON.stringify(deployment));
 
-    // Ajouter l'ID à la liste des déploiements de cette clé API
-    await kv.sadd(`api:${apiKey}:deployments`, id);
+    // Ajouter l'ID à la liste des déploiements de cet utilisateur
+    await kv.sadd(`user:${userId}:deployments`, id);
 
     // Stocker aussi par subdomain pour la recherche rapide
     await kv.set(`subdomain:${subdomain}`, id);

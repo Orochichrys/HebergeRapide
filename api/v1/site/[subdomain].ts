@@ -19,30 +19,30 @@ export default async function handler(
   try {
     // Récupérer l'ID depuis le subdomain
     const id = await kv.get(`subdomain:${subdomain}`);
-    
+
     if (!id) {
       return res.status(404).json({ error: 'Site not found' });
     }
 
     // Récupérer le déploiement
     const data = await kv.get(`deployment:${id}`);
-    
+
     if (!data) {
       return res.status(404).json({ error: 'Site not found' });
     }
 
     const deployment = JSON.parse(data as string);
-    
-    // Retourner seulement les données nécessaires (sans l'API key)
-    const { apiKey: _, ...publicDeployment } = deployment;
+
+    // Retourner seulement les données nécessaires (sans l'userId)
+    const { userId: _, ...publicDeployment } = deployment;
 
     return res.status(200).json(publicDeployment);
   } catch (error: any) {
     console.error('Error fetching site:', error);
     // Si KV n'est pas configuré, retourner une erreur explicite
     if (error.message?.includes('KV') || error.message?.includes('Redis')) {
-      return res.status(500).json({ 
-        error: 'Database not configured. Please set up Vercel KV in your project settings.' 
+      return res.status(500).json({
+        error: 'Database not configured. Please set up Vercel KV in your project settings.'
       });
     }
     return res.status(500).json({ error: 'Internal server error' });

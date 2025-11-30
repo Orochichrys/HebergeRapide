@@ -5,111 +5,136 @@ import Dashboard from './components/Dashboard';
 import DeployForm from './components/DeployForm';
 import ApiDocs from './components/ApiDocs';
 import SitePreview from './components/SitePreview';
-import { getDeployments, saveDeployment, deleteDeployment, getApiKeys } from './services/storageService';
-import { Deployment } from './types';
+import AuthForm from './components/AuthForm';
+import { deleteDeployment } from './services/storageService';
+import { Deployment, User } from './types';
 import { DEMO_DELAY } from './constants';
 
 const AppContent: React.FC = () => {
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('auth_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchDeployments = async () => {
-      const apiKeys = getApiKeys();
-      if (apiKeys.length > 0) {
-        try {
-          const response = await fetch('/api/v1/sites', {
-            headers: {
-              'Authorization': `Bearer ${apiKeys[0].key}`
-            }
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setDeployments(data.sites);
-            return;
-          }
-        } catch (error) {
-          console.error('Error fetching from API:', error);
+    if (token) {
+      fetchDeployments();
+    }
+  }, [token]);
+
+  const fetchDeployments = async () => {
+    if (!token) return;
+
+    try {
+      const response = await fetch('/api/v1/sites', {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDeployments(data.sites);
+      } else if (response.status === 401) {
+        handleLogout();
       }
-      setDeployments(getDeployments());
-    };
-    fetchDeployments();
-  }, []);
+    } catch (error) {
+      console.error('Error fetching from API:', error);
+    }
+  };
+
+  const handleLogin = (newToken: string, newUser: User) => {
+    setToken(newToken);
+    setUser(newUser);
+    localStorage.setItem('auth_token', newToken);
+    localStorage.setItem('auth_user', JSON.stringify(newUser));
+  };
+
+  const handleLogout = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    navigate('/');
+  };
 
   const handleDeploy = async (name: string, subdomain: string, code: string) => {
+    if (!token) return;
     setIsDeploying(true);
 
     // Simulate network delay for "building"
     await new Promise(resolve => setTimeout(resolve, DEMO_DELAY));
 
-    const apiKeys = getApiKeys();
-    if (apiKeys.length > 0) {
-      try {
-        const response = await fetch('/api/v1/deploy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKeys[0].key}`
-          },
-          body: JSON.stringify({ name, html: code })
-        });
+    try {
+      const response = await fetch('/api/v1/deploy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, html: code })
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          const newDeployment: Deployment = {
-            id: data.id,
-            subdomain: data.subdomain,
-            name,
-            code,
-            createdAt: Date.now(),
-            status: data.status,
-            url: data.url,
-            visitors: 0
-          };
-          setDeployments(prev => [newDeployment, ...prev]);
-          setIsDeploying(false);
-          navigate('/');
-          return;
-        }
-      } catch (error) {
-        console.error('Error deploying to API:', error);
+      if (response.ok) {
+        const data = await response.json();
+        const newDeployment: Deployment = {
+          id: data.id,
+          subdomain: data.subdomain,
+          name,
+          code,
+          createdAt: Date.now(),
+          status: data.status,
+          url: data.url,
+          visitors: 0
+        };
+        setDeployments(prev => [newDeployment, ...prev]);
+        setIsDeploying(false);
+        navigate('/');
+      } else {
+        console.error('Deployment failed');
+        setIsDeploying(false);
       }
+    } catch (error) {
+      console.error('Error deploying to API:', error);
+      setIsDeploying(false);
     }
-
-    const id = Math.random().toString(36).substr(2, 9);
-    // Encode the deployment data in the URL so it can be shared publicly
-    const encodedData = btoa(encodeURIComponent(JSON.stringify({ name, code })));
-    const mockUrl = `${window.location.origin}/#/s/${subdomain}?d=${encodedData}`;
-
-    const newDeployment: Deployment = {
-      id,
-      subdomain,
-      name,
-      code,
-      createdAt: Date.now(),
-      status: 'live',
-      url: mockUrl,
-      visitors: 0
-    };
-
-    saveDeployment(newDeployment);
-    setDeployments(prev => [newDeployment, ...prev]);
-    setIsDeploying(false);
-    navigate('/');
   };
 
   const handleDelete = (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce site ?')) {
-      deleteDeployment(id);
+      // Note: Delete API endpoint not implemented yet, so we just remove from UI for now
+      // Ideally we should add DELETE /api/v1/sites/:id
+      deleteDeployment(id); // Still delete from local storage just in case
       setDeployments(prev => prev.filter(d => d.id !== id));
     }
   };
 
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-dark-bg text-gray-100 font-sans">
+        <Routes>
+          <Route path="/s/:subdomain" element={<SiteRouteWrapper />} />
+          <Route path="*" element={<AuthForm onLogin={handleLogin} />} />
+        </Routes>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-dark-bg text-gray-100 font-sans selection:bg-brand-500/30">
       <Navbar />
+      <div className="absolute top-4 right-4 flex items-center gap-4">
+        <span className="text-gray-400">Bonjour, {user?.name}</span>
+        <button
+          onClick={handleLogout}
+          className="text-sm text-red-400 hover:text-red-300"
+        >
+          Déconnexion
+        </button>
+      </div>
       <main>
         <Routes>
           <Route path="/" element={
@@ -147,24 +172,20 @@ const SiteRouteWrapper = () => {
   useEffect(() => {
     if (subdomainFromUrl) {
       const fetchDeployment = async () => {
-        // First, try to get from localStorage (for the owner)
-        const all = getDeployments();
-        let found = all.find(d => d.subdomain === subdomainFromUrl);
-
-        // If not found in localStorage, fetch from API
-        if (!found) {
-          try {
-            const response = await fetch(`/api/v1/site/${subdomainFromUrl}`);
-            if (response.ok) {
-              found = await response.json();
-            }
-          } catch (e) {
-            console.error('Error fetching deployment from API:', e);
+        try {
+          const response = await fetch(`/api/v1/site/${subdomainFromUrl}`);
+          if (response.ok) {
+            const found = await response.json();
+            setDeployment(found);
+          } else {
+            setDeployment(null);
           }
+        } catch (e) {
+          console.error('Error fetching deployment from API:', e);
+          setDeployment(null);
+        } finally {
+          setLoading(false);
         }
-
-        setDeployment(found || null);
-        setLoading(false);
       };
 
       fetchDeployment();
