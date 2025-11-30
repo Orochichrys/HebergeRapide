@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Deployment } from '../types';
 
 interface SitePreviewProps {
@@ -6,19 +6,12 @@ interface SitePreviewProps {
 }
 
 const SitePreview: React.FC<SitePreviewProps> = ({ deployment }) => {
-
-  // Create a Blob URL for the HTML content
-  const blobUrl = useMemo(() => {
-    const blob = new Blob([deployment.code], { type: 'text/html' });
-    return URL.createObjectURL(blob);
-  }, [deployment.code]);
-
   return (
     <iframe
-      src={blobUrl}
+      srcdoc={deployment.code}
       className="w-full h-screen border-none"
       title="Site Preview"
-      sandbox="allow-scripts allow-modals allow-same-origin allow-forms"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
     />
   );
 };
