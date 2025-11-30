@@ -5,7 +5,7 @@ import Dashboard from './components/Dashboard';
 import DeployForm from './components/DeployForm';
 import ApiDocs from './components/ApiDocs';
 import SitePreview from './components/SitePreview';
-import { getDeployments, saveDeployment, deleteDeployment } from './services/storageService';
+import { getDeployments, saveDeployment, deleteDeployment, getApiKeys } from './services/storageService';
 import { Deployment } from './types';
 import { DEMO_DELAY } from './constants';
 
@@ -15,14 +15,68 @@ const AppContent: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setDeployments(getDeployments());
+    const fetchDeployments = async () => {
+      const apiKeys = getApiKeys();
+      if (apiKeys.length > 0) {
+        try {
+          const response = await fetch('/api/v1/sites', {
+            headers: {
+              'Authorization': `Bearer ${apiKeys[0].key}`
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setDeployments(data.sites);
+            return;
+          }
+        } catch (error) {
+          console.error('Error fetching from API:', error);
+        }
+      }
+      setDeployments(getDeployments());
+    };
+    fetchDeployments();
   }, []);
 
   const handleDeploy = async (name: string, subdomain: string, code: string) => {
     setIsDeploying(true);
-    
+
     // Simulate network delay for "building"
     await new Promise(resolve => setTimeout(resolve, DEMO_DELAY));
+
+    const apiKeys = getApiKeys();
+    if (apiKeys.length > 0) {
+      try {
+        const response = await fetch('/api/v1/deploy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKeys[0].key}`
+          },
+          body: JSON.stringify({ name, html: code })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const newDeployment: Deployment = {
+            id: data.id,
+            subdomain: data.subdomain,
+            name,
+            code,
+            createdAt: Date.now(),
+            status: data.status,
+            url: data.url,
+            visitors: 0
+          };
+          setDeployments(prev => [newDeployment, ...prev]);
+          setIsDeploying(false);
+          navigate('/');
+          return;
+        }
+      } catch (error) {
+        console.error('Error deploying to API:', error);
+      }
+    }
 
     const id = Math.random().toString(36).substr(2, 9);
     // Encode the deployment data in the URL so it can be shared publicly
@@ -61,19 +115,19 @@ const AppContent: React.FC = () => {
           <Route path="/" element={
             <Dashboard deployments={deployments} onDelete={handleDelete} />
           } />
-          
+
           <Route path="/deploy" element={
             <DeployForm onDeploy={handleDeploy} isDeploying={isDeploying} />
           } />
-          
+
           <Route path="/api-docs" element={
             <ApiDocs />
           } />
-          
+
           {/* Public Route for viewing sites */}
-          <Route 
-            path="/s/:subdomain" 
-            element={<SiteRouteWrapper />} 
+          <Route
+            path="/s/:subdomain"
+            element={<SiteRouteWrapper />}
           />
         </Routes>
       </main>
@@ -86,7 +140,7 @@ const SiteRouteWrapper = () => {
   const navigate = useNavigate();
   const path = window.location.hash;
   const subdomainFromUrl = path.split('/s/')[1]?.split('?')[0];
-  
+
   const [deployment, setDeployment] = useState<Deployment | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -96,7 +150,7 @@ const SiteRouteWrapper = () => {
         // First, try to get from localStorage (for the owner)
         const all = getDeployments();
         let found = all.find(d => d.subdomain === subdomainFromUrl);
-        
+
         // If not found in localStorage, fetch from API
         if (!found) {
           try {
@@ -108,11 +162,11 @@ const SiteRouteWrapper = () => {
             console.error('Error fetching deployment from API:', e);
           }
         }
-        
+
         setDeployment(found || null);
         setLoading(false);
       };
-      
+
       fetchDeployment();
     } else {
       setLoading(false);
