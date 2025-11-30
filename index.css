@@ -4,10 +4,37 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --background: 248 250 252;
+    /* Slate 50 */
+    --foreground: 15 23 42;
+    /* Slate 900 */
+    --card: 255 255 255;
+    /* White */
+    --card-foreground: 15 23 42;
+    --border: 226 232 240;
+    /* Slate 200 */
+    --input: 226 232 240;
+  }
+
+  .dark {
+    --background: 15 23 42;
+    /* Slate 900 */
+    --foreground: 248 250 252;
+    /* Slate 50 */
+    --card: 30 41 59;
+    /* Slate 800 */
+    --card-foreground: 248 250 252;
+    --border: 51 65 85;
+    /* Slate 700 */
+    --input: 51 65 85;
+  }
+}
+
 body {
+  @apply bg-background text-foreground;
   font-family: 'Inter', sans-serif;
-  background-color: #0f172a;
-  color: #f8fafc;
 }
 
 /* Custom Scrollbar */
@@ -16,16 +43,15 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1e293b;
+  @apply bg-background;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #475569;
-  border-radius: 4px;
+  @apply bg-border rounded;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  @apply bg-slate-400;
 }
 
 /* Editor Overrides */

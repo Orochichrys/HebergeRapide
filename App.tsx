@@ -136,7 +136,7 @@ const AppContent: React.FC = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-dark-bg text-gray-100 font-sans">
+      <div className="min-h-screen bg-background text-foreground font-sans">
         <Routes>
           <Route path="*" element={<AuthForm onLogin={handleLogin} />} />
         </Routes>
@@ -145,7 +145,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-dark-bg text-gray-100 font-sans selection:bg-brand-500/30 transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-brand-500/30 transition-colors duration-300">
       <Navbar user={user} onLogout={handleLogout} />
       <main>
         <Routes>

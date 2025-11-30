@@ -8,6 +8,12 @@ export default {
   theme: {
     extend: {
       colors: {
+        background: 'rgb(var(--background) / <alpha-value>)',
+        foreground: 'rgb(var(--foreground) / <alpha-value>)',
+        card: 'rgb(var(--card) / <alpha-value>)',
+        'card-foreground': 'rgb(var(--card-foreground) / <alpha-value>)',
+        border: 'rgb(var(--border) / <alpha-value>)',
+        input: 'rgb(var(--input) / <alpha-value>)',
         brand: {
           50: '#f0f9ff',
           100: '#e0f2fe',
@@ -20,11 +26,10 @@ export default {
           800: '#075985',
           900: '#0c4a6e',
         },
-        dark: {
-          bg: '#0f172a',
-          card: '#1e293b',
-          border: '#334155'
-        }
+        // Aliases for backward compatibility
+        'dark-bg': 'rgb(var(--background) / <alpha-value>)',
+        'dark-card': 'rgb(var(--card) / <alpha-value>)',
+        'dark-border': 'rgb(var(--border) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],

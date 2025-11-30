@@ -33,7 +33,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   }, [theme]);
 
   return (
-    <nav className="border-b border-dark-border bg-dark-card/50 backdrop-blur-md sticky top-0 z-50">
+    <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
@@ -57,7 +57,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive
                       ? 'bg-brand-500/10 text-brand-400'
-                      : 'text-gray-300 hover:bg-dark-border hover:text-white'
+                      : 'text-gray-300 hover:bg-border hover:text-foreground'
                     }`
                   }
                 >
@@ -68,24 +68,24 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             </div>
 
             {/* Theme Switcher */}
-            <div className="flex items-center bg-dark-bg border border-dark-border rounded-lg p-1">
+            <div className="flex items-center bg-background border border-border rounded-lg p-1">
               <button
                 onClick={() => setTheme('light')}
-                className={`p-1.5 rounded-md transition-colors ${theme === 'light' ? 'bg-dark-card text-yellow-400 shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+                className={`p-1.5 rounded-md transition-colors ${theme === 'light' ? 'bg-card text-yellow-400 shadow-sm' : 'text-gray-400 hover:text-foreground'}`}
                 title="Mode Clair"
               >
                 <Sun className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setTheme('system')}
-                className={`p-1.5 rounded-md transition-colors ${theme === 'system' ? 'bg-dark-card text-blue-400 shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+                className={`p-1.5 rounded-md transition-colors ${theme === 'system' ? 'bg-card text-blue-400 shadow-sm' : 'text-gray-400 hover:text-foreground'}`}
                 title="Mode Système"
               >
                 <Monitor className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setTheme('dark')}
-                className={`p-1.5 rounded-md transition-colors ${theme === 'dark' ? 'bg-dark-card text-purple-400 shadow-sm' : 'text-gray-400 hover:text-gray-200'}`}
+                className={`p-1.5 rounded-md transition-colors ${theme === 'dark' ? 'bg-card text-purple-400 shadow-sm' : 'text-gray-400 hover:text-foreground'}`}
                 title="Mode Sombre"
               >
                 <Moon className="w-4 h-4" />
@@ -94,7 +94,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
             {/* User Profile */}
             {user && (
-              <div className="flex items-center gap-3 pl-4 border-l border-dark-border">
+              <div className="flex items-center gap-3 pl-4 border-l border-border">
                 <button
                   onClick={() => navigate('/profile')}
                   className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors group"
@@ -102,7 +102,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 font-bold border border-brand-500/30 group-hover:border-brand-500 transition-colors">
                     {user.name?.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm font-medium hidden lg:block">{user.name}</span>
+                  <span className="text-sm font-medium hidden lg:block text-foreground">{user.name}</span>
                 </button>
                 <button
                   onClick={onLogout}
