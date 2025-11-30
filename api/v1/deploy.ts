@@ -1,6 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { kv } from '@vercel/kv';
-import { verifyToken } from '../../utils/auth';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-me';
+
+const verifyToken = (token: string): any => {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
+};
 
 interface DeployRequest {
   name: string;
