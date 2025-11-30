@@ -89,18 +89,36 @@ const ApiDocs: React.FC = () => {
             <div className="p-6">
               <p className="text-gray-300 mb-4">Déploie un nouveau site à partir d'un fichier HTML brut.</p>
 
-              <div className="bg-[#0d1117] p-4 rounded-lg font-mono text-sm text-gray-300 overflow-x-auto relative group">
-                <button
-                  onClick={() => copyToClipboard(`curl -X POST https://heberge-rapide.vercel.app/v1/deploy \\
+              <div className="space-y-4">
+                {/* Linux/Mac */}
+                <div className="bg-[#0d1117] p-4 rounded-lg font-mono text-sm text-gray-300 overflow-x-auto relative group">
+                  <div className="text-xs text-gray-500 mb-2">Linux / Mac / Git Bash:</div>
+                  <button
+                    onClick={() => copyToClipboard(`curl -X POST https://heberge-rapide.vercel.app/v1/deploy \\
   -H "Authorization: Bearer ${keys[0]?.key || 'YOUR_API_KEY'}" \\
   -d '{"name": "mon-site", "html": "<h1>Hello</h1>"}'`)}
-                  className="absolute top-2 right-2 p-1.5 rounded bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
-                >
-                  <Copy className="w-4 h-4 text-white" />
-                </button>
-                <pre><span className="text-purple-400">curl</span> -X POST https://heberge-rapide.vercel.app/v1/deploy \
+                    className="absolute top-2 right-2 p-1.5 rounded bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
+                  >
+                    <Copy className="w-4 h-4 text-white" />
+                  </button>
+                  <pre><span className="text-purple-400">curl</span> -X POST https://heberge-rapide.vercel.app/v1/deploy \
                   -H <span className="text-green-400">&quot;Authorization: Bearer {keys[0]?.key || 'YOUR_API_KEY'}&quot;</span> \
                   -d <span className="text-yellow-400">&apos;{jsonPayload}&apos;</span></pre>
+                </div>
+
+                {/* Windows PowerShell */}
+                <div className="bg-[#0d1117] p-4 rounded-lg font-mono text-sm text-gray-300 overflow-x-auto relative group">
+                  <div className="text-xs text-gray-500 mb-2">Windows PowerShell:</div>
+                  <button
+                    onClick={() => copyToClipboard(`curl.exe -X POST https://heberge-rapide.vercel.app/v1/deploy -H "Authorization: Bearer ${keys[0]?.key || 'YOUR_API_KEY'}" -d '{\\"name\\": \\"mon-site\\", \\"html\\": \\"<h1>Hello</h1>\\"}'`)}
+                    className="absolute top-2 right-2 p-1.5 rounded bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/20"
+                  >
+                    <Copy className="w-4 h-4 text-white" />
+                  </button>
+                  <pre><span className="text-purple-400">curl.exe</span> -X POST https://heberge-rapide.vercel.app/v1/deploy <span className="text-gray-500">`</span>
+                  -H <span className="text-green-400">&quot;Authorization: Bearer {keys[0]?.key || 'YOUR_API_KEY'}&quot;</span> <span className="text-gray-500">`</span>
+                  -d <span className="text-yellow-400">&apos;{`{`}&quot;name&quot;: &quot;mon-site&quot;, &quot;html&quot;: &quot;&lt;h1&gt;Hello&lt;/h1&gt;&quot;{`}`}&apos;</span></pre>
+                </div>
               </div>
 
               <div className="mt-4">
