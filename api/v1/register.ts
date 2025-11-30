@@ -1,6 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { kv } from '@vercel/kv';
-import { hashPassword } from '../../utils/auth';
+import bcrypt from 'bcryptjs';
+
+const hashPassword = async (password: string): Promise<string> => {
+    const salt = await bcrypt.genSalt(10);
+    return bcrypt.hash(password, salt);
+};
 
 export default async function handler(
     req: VercelRequest,

@@ -1,6 +1,18 @@
+```typescript
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { kv } from '@vercel/kv';
-import { comparePassword, generateToken } from '../../utils/auth';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-me';
+
+const comparePassword = async (password: string, hash: string): Promise<boolean> => {
+  return bcrypt.compare(password, hash);
+};
+
+const generateToken = (userId: string, email: string): string => {
+  return jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '7d' });
+};
 
 export default async function handler(
     req: VercelRequest,
@@ -18,7 +30,7 @@ export default async function handler(
 
     try {
         // Get user
-        const userData = await kv.get(`user:${email}`);
+        const userData = await kv.get(`user:${ email } `);
         if (!userData) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
@@ -47,3 +59,4 @@ export default async function handler(
         return res.status(500).json({ error: 'Internal server error' });
     }
 }
+```
