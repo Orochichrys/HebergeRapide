@@ -20,6 +20,8 @@ const AppContent: React.FC = () => {
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const navigate = useNavigate();
+  const path = window.location.hash;
+  const isViewingSite = path.startsWith('#/s/');
 
   useEffect(() => {
     if (token) {
@@ -71,7 +73,6 @@ const AppContent: React.FC = () => {
     if (!token) return;
     setIsDeploying(true);
 
-    // Simulate network delay for "building"
     await new Promise(resolve => setTimeout(resolve, DEMO_DELAY));
 
     try {
@@ -116,11 +117,19 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // Si on visualise un site, afficher que SiteRouteWrapper
+  if (isViewingSite) {
+    return (
+      <Routes>
+        <Route path="/s/:subdomain" element={<SiteRouteWrapper />} />
+      </Routes>
+    );
+  }
+
   if (!token) {
     return (
       <div className="min-h-screen bg-dark-bg text-gray-100 font-sans">
         <Routes>
-          <Route path="/s/:subdomain" element={<SiteRouteWrapper />} />
           <Route path="*" element={<AuthForm onLogin={handleLogin} />} />
         </Routes>
       </div>
@@ -164,19 +173,12 @@ const AppContent: React.FC = () => {
           <Route path="/api-docs" element={
             <ApiDocs />
           } />
-
-          {/* Public Route for viewing sites */}
-          <Route
-            path="/s/:subdomain"
-            element={<SiteRouteWrapper />}
-          />
         </Routes>
       </main>
     </div>
   );
 };
 
-// Wrapper to find the deployment from storage before rendering SitePreview
 const SiteRouteWrapper = () => {
   const navigate = useNavigate();
   const path = window.location.hash;
@@ -210,15 +212,15 @@ const SiteRouteWrapper = () => {
     }
   }, [subdomainFromUrl]);
 
-  if (loading) return <div className="h-screen bg-dark-bg flex items-center justify-center text-white">Chargement...</div>;
+  if (loading) return <div className="h-screen bg-white flex items-center justify-center text-gray-800">Chargement...</div>;
 
   if (!deployment) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen">
+      <div className="flex flex-col items-center justify-center h-screen bg-dark-bg">
         <h1 className="text-4xl font-bold mb-4 text-white">404</h1>
-        <p className="text-gray-400 mb-4">Site introuvable ou supprimé.</p>
+        <p className="text-gray-400 mb-4">Site introuvable</p>
         <button onClick={() => navigate('/')} className="text-brand-400 hover:underline">
-          Retour à l'accueil
+          Retour
         </button>
       </div>
     );
