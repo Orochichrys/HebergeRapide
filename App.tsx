@@ -1,144 +1,173 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
-const [isDeploying, setIsDeploying] = useState(false);
-const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
-const [user, setUser] = useState<User | null>(() => {
-  const savedUser = localStorage.getItem('auth_user');
-  return savedUser ? JSON.parse(savedUser) : null;
-});
-const navigate = useNavigate();
-const path = window.location.hash;
-const isViewingSite = path.startsWith('#/s/');
+import Dashboard from './components/Dashboard';
+import DeployForm from './components/DeployForm';
+import ApiDocs from './components/ApiDocs';
+import SitePreview from './components/SitePreview';
+import AuthForm from './components/AuthForm';
+import UserProfile from './components/UserProfile';
+import { deleteDeployment } from './services/storageService';
+import { Deployment, User } from './types';
+import { DEMO_DELAY } from './constants';
 
-useEffect(() => {
-  if (token) {
-    fetchDeployments();
-  }
+const AppContent: React.FC = () => {
+  const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('auth_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  const navigate = useNavigate();
+  const path = window.location.hash;
+  const isViewingSite = path.startsWith('#/s/');
 
-  // Initialize Grok AI with Environment Variable
-  const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-  if (openRouterKey) {
-    import('./services/aiService').then(({ initAI }) => {
-      initAI(openRouterKey);
-    });
-  }
-}, [token]);
+  useEffect(() => {
+    if (token) {
+      fetchDeployments();
+    }
 
-const fetchDeployments = async () => {
-  if (!token) return;
+    // Initialize Grok AI with Environment Variable
+    const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    if (openRouterKey) {
+      import('./services/aiService').then(({ initAI }) => {
+        initAI(openRouterKey);
+      });
+    }
+  }, [token]);
 
-  try {
-    const response = await fetch('/api/v1/sites', {
-      headers: {
-        'Authorization': `Bearer ${token}`
+  const fetchDeployments = async () => {
+    if (!token) return;
+
+    try {
+      const response = await fetch('/api/v1/sites', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDeployments(data.sites);
+      } else if (response.status === 401) {
+        handleLogout();
       }
-    });
-    if (response.ok) {
-      const data = await response.json();
-      setDeployments(data.sites);
-    } else if (response.status === 401) {
-      handleLogout();
+    } catch (error) {
+      console.error('Error fetching from API:', error);
     }
-  } catch (error) {
-    console.error('Error fetching from API:', error);
-  }
-};
+  };
 
-const handleLogin = (newToken: string, newUser: User) => {
-  setToken(newToken);
-  setUser(newUser);
-  localStorage.setItem('auth_token', newToken);
-  localStorage.setItem('auth_user', JSON.stringify(newUser));
-};
+  const handleLogin = (newToken: string, newUser: User) => {
+    setToken(newToken);
+    setUser(newUser);
+    localStorage.setItem('auth_token', newToken);
+    localStorage.setItem('auth_user', JSON.stringify(newUser));
+  };
 
-const handleLogout = () => {
-  setToken(null);
-  setUser(null);
-  localStorage.removeItem('auth_token');
-  localStorage.removeItem('auth_user');
-  navigate('/');
-};
+  const handleLogout = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    navigate('/');
+  };
 
-const handleUpdateUser = (updatedUser: User) => {
-  setUser(updatedUser);
-  localStorage.setItem('auth_user', JSON.stringify(updatedUser));
-};
+  const handleUpdateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+  };
 
-const handleDeploy = async (name: string, subdomain: string, code: string) => {
-  if (!token) return;
-  setIsDeploying(true);
+  const handleDeploy = async (name: string, subdomain: string, code: string) => {
+    if (!token) return;
+    setIsDeploying(true);
 
-  await new Promise(resolve => setTimeout(resolve, DEMO_DELAY));
+    await new Promise(resolve => setTimeout(resolve, DEMO_DELAY));
 
-  try {
-    const response = await fetch('/api/v1/deploy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ name, html: code })
-    });
+    try {
+      const response = await fetch('/api/v1/deploy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, html: code })
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      const newDeployment: Deployment = {
-        id: data.id,
-        subdomain: data.subdomain,
-        name,
-        code,
-        createdAt: Date.now(),
-        status: data.status,
-        url: data.url,
-        visitors: 0
-      };
-      setDeployments(prev => [newDeployment, ...prev]);
-      setIsDeploying(false);
-      navigate('/');
-    } else {
-      console.error('Deployment failed');
+      if (response.ok) {
+        const data = await response.json();
+        const newDeployment: Deployment = {
+          id: data.id,
+          subdomain: data.subdomain,
+          name,
+          code,
+          createdAt: Date.now(),
+          status: data.status,
+          url: data.url,
+          visitors: 0
+        };
+        setDeployments(prev => [newDeployment, ...prev]);
+        setIsDeploying(false);
+        navigate('/');
+      } else {
+        console.error('Deployment failed');
+        setIsDeploying(false);
+      }
+    } catch (error) {
+      console.error('Error deploying to API:', error);
       setIsDeploying(false);
     }
-    <Route path="/s/:subdomain" element={<SiteRouteWrapper />} />
-      </Routes >
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce site ?')) {
+      deleteDeployment(id);
+      setDeployments(prev => prev.filter(d => d.id !== id));
+    }
+  };
+
+  // Visualisation de site : aucun background
+  if (isViewingSite) {
+    return (
+      <Routes>
+        <Route path="/s/:subdomain" element={<SiteRouteWrapper />} />
+      </Routes>
     );
   }
 
-if (!token) {
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-background text-foreground font-sans">
+        <Routes>
+          <Route path="*" element={<AuthForm onLogin={handleLogin} />} />
+        </Routes>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
-      <Routes>
-        <Route path="*" element={<AuthForm onLogin={handleLogin} />} />
-      </Routes>
+    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-brand-500/30 transition-colors duration-300">
+      <Navbar user={user} onLogout={handleLogout} />
+      <main>
+        <Routes>
+          <Route path="/" element={
+            <Dashboard deployments={deployments} onDelete={handleDelete} />
+          } />
+
+          <Route path="/deploy" element={
+            <DeployForm onDeploy={handleDeploy} isDeploying={isDeploying} />
+          } />
+
+          <Route path="/profile" element={
+            user ? <UserProfile user={user} token={token} onUpdateUser={handleUpdateUser} /> : null
+          } />
+
+          <Route path="/api-docs" element={
+            <ApiDocs />
+          } />
+        </Routes>
+      </main>
     </div>
   );
-}
-
-return (
-  <div className="min-h-screen bg-background text-foreground font-sans selection:bg-brand-500/30 transition-colors duration-300">
-    <Navbar user={user} onLogout={handleLogout} />
-    <main>
-      <Routes>
-        <Route path="/" element={
-          <Dashboard deployments={deployments} onDelete={handleDelete} />
-        } />
-
-        <Route path="/deploy" element={
-          <DeployForm onDeploy={handleDeploy} isDeploying={isDeploying} />
-        } />
-
-        <Route path="/profile" element={
-          user ? <UserProfile user={user} token={token} onUpdateUser={handleUpdateUser} /> : null
-        } />
-
-        <Route path="/api-docs" element={
-          <ApiDocs />
-        } />
-      </Routes>
-    </main>
-  </div>
-);
 };
 
 const SiteRouteWrapper = () => {
