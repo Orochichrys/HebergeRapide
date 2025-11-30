@@ -86,41 +86,38 @@ const SiteRouteWrapper = () => {
   const navigate = useNavigate();
   const path = window.location.hash;
   const subdomainFromUrl = path.split('/s/')[1]?.split('?')[0];
-  const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
-  const encodedData = urlParams.get('d');
   
   const [deployment, setDeployment] = useState<Deployment | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (subdomainFromUrl) {
-      // First, try to get from localStorage (for the owner)
-      const all = getDeployments();
-      let found = all.find(d => d.subdomain === subdomainFromUrl);
-      
-      // If not found in localStorage, try to decode from URL (for public access)
-      if (!found && encodedData) {
-        try {
-          const decoded = JSON.parse(decodeURIComponent(atob(encodedData)));
-          found = {
-            id: subdomainFromUrl,
-            subdomain: subdomainFromUrl,
-            name: decoded.name,
-            code: decoded.code,
-            createdAt: Date.now(),
-            status: 'live' as const,
-            url: window.location.href,
-            visitors: 0
-          };
-        } catch (e) {
-          console.error('Error decoding deployment data:', e);
+      const fetchDeployment = async () => {
+        // First, try to get from localStorage (for the owner)
+        const all = getDeployments();
+        let found = all.find(d => d.subdomain === subdomainFromUrl);
+        
+        // If not found in localStorage, fetch from API
+        if (!found) {
+          try {
+            const response = await fetch(`/api/v1/site/${subdomainFromUrl}`);
+            if (response.ok) {
+              found = await response.json();
+            }
+          } catch (e) {
+            console.error('Error fetching deployment from API:', e);
+          }
         }
-      }
+        
+        setDeployment(found || null);
+        setLoading(false);
+      };
       
-      setDeployment(found || null);
+      fetchDeployment();
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [subdomainFromUrl, encodedData]);
+  }, [subdomainFromUrl]);
 
   if (loading) return <div className="h-screen bg-dark-bg flex items-center justify-center text-white">Chargement...</div>;
 
