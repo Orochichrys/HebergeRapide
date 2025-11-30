@@ -6,6 +6,7 @@ import DeployForm from './components/DeployForm';
 import ApiDocs from './components/ApiDocs';
 import SitePreview from './components/SitePreview';
 import AuthForm from './components/AuthForm';
+import UserProfile from './components/UserProfile';
 import { deleteDeployment } from './services/storageService';
 import { Deployment, User } from './types';
 import { DEMO_DELAY } from './constants';
@@ -61,6 +62,11 @@ const AppContent: React.FC = () => {
     navigate('/');
   };
 
+  const handleUpdateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+  };
+
   const handleDeploy = async (name: string, subdomain: string, code: string) => {
     if (!token) return;
     setIsDeploying(true);
@@ -105,9 +111,7 @@ const AppContent: React.FC = () => {
 
   const handleDelete = (id: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce site ?')) {
-      // Note: Delete API endpoint not implemented yet, so we just remove from UI for now
-      // Ideally we should add DELETE /api/v1/sites/:id
-      deleteDeployment(id); // Still delete from local storage just in case
+      deleteDeployment(id);
       setDeployments(prev => prev.filter(d => d.id !== id));
     }
   };
@@ -127,7 +131,15 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-dark-bg text-gray-100 font-sans selection:bg-brand-500/30">
       <Navbar />
       <div className="absolute top-4 right-4 flex items-center gap-4">
-        <span className="text-gray-400">Bonjour, {user?.name}</span>
+        <button
+          onClick={() => navigate('/profile')}
+          className="text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+        >
+          <span className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 font-bold">
+            {user?.name?.charAt(0).toUpperCase()}
+          </span>
+          <span>{user?.name}</span>
+        </button>
         <button
           onClick={handleLogout}
           className="text-sm text-red-400 hover:text-red-300"
@@ -143,6 +155,10 @@ const AppContent: React.FC = () => {
 
           <Route path="/deploy" element={
             <DeployForm onDeploy={handleDeploy} isDeploying={isDeploying} />
+          } />
+
+          <Route path="/profile" element={
+            user ? <UserProfile user={user} token={token} onUpdateUser={handleUpdateUser} /> : null
           } />
 
           <Route path="/api-docs" element={
