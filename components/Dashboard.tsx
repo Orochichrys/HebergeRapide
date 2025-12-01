@@ -1,6 +1,6 @@
 import React from 'react';
 import { Deployment } from '../types';
-import { Globe, Clock, Trash2, Activity, ExternalLink } from 'lucide-react';
+import { Globe, Clock, Trash2, Activity, ExternalLink, Edit2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface DashboardProps {
@@ -76,6 +76,13 @@ const Dashboard: React.FC<DashboardProps> = ({ deployments, onDelete }) => {
                   className="flex-1 bg-background hover:bg-border text-foreground py-2 rounded text-sm text-center transition-colors"
                 >
                   Voir le site
+                </Link>
+                <Link
+                  to={`/edit/${deploy.id}`}
+                  className="p-2 text-muted-foreground hover:text-brand-400 hover:bg-brand-400/10 rounded transition-colors"
+                  title="Éditer"
+                >
+                  <Edit2 className="w-5 h-5" />
                 </Link>
                 <button
                   onClick={() => onDelete(deploy.id)}
