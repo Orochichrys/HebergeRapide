@@ -19,7 +19,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
         setLoading(true);
 
         try {
-            const endpoint = isLogin ? '/api/v1/login' : '/api/v1/register';
+            const action = isLogin ? 'login' : 'register';
+            const endpoint = `/api/v1/auth?action=${action}`;
             const body = isLogin ? { email, password } : { name, email, password };
 
             const response = await fetch(endpoint, {
@@ -50,7 +51,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
 
     const handleGoogleLogin = () => {
         // Redirect to Google OAuth endpoint
-        window.location.href = '/api/v1/auth/google';
+        window.location.href = '/api/v1/auth?action=google';
     };
 
     return (
