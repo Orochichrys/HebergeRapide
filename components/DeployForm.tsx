@@ -118,7 +118,7 @@ const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
             </div>
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-2">Sous-domaine</label>
-              <div className={`flex items - center bg - background border rounded - lg overflow - hidden transition - all ${ subdomainError ? 'border-red-500' : 'border-border focus-within:ring-2 focus-within:ring-brand-500' } `}>
+              <div className={`flex items-center bg-background border rounded-lg overflow-hidden transition-all ${subdomainError ? 'border-red-500' : 'border-border focus-within:ring-2 focus-within:ring-brand-500'}`}>
                 <input
                   type="text"
                   required

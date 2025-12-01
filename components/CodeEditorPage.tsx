@@ -278,6 +278,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({ token }) => {
                         <div className="flex-1 overflow-hidden">
                             <CodeEditor
                                 code={activeFile.content}
+                                language={activeFile.type}
                                 onChange={updateActiveFileContent}
                                 placeholder={`Contenu de ${activeFile.name}`}
                             />

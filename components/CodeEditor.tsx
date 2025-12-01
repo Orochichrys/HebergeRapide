@@ -7,13 +7,21 @@ import 'prismjs/components/prism-javascript';
 
 interface CodeEditorProps {
   code: string;
+  language: 'html' | 'css' | 'js';
   onChange: (code: string) => void;
   placeholder?: string;
 }
 
-const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, placeholder }) => {
+const CodeEditor: React.FC<CodeEditorProps> = ({ code, language, onChange, placeholder }) => {
   const highlight = (code: string) => {
-    return Prism.highlight(code, Prism.languages.markup, 'markup'); // 'markup' handles HTML
+    switch (language) {
+      case 'css':
+        return Prism.highlight(code, Prism.languages.css, 'css');
+      case 'js':
+        return Prism.highlight(code, Prism.languages.javascript, 'javascript');
+      default:
+        return Prism.highlight(code, Prism.languages.markup, 'markup');
+    }
   };
 
   return (
@@ -33,7 +41,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, placeholder }) 
         textareaClassName="focus:outline-none"
       />
       <div className="absolute top-2 right-2 text-[10px] text-muted-foreground bg-card px-2 py-1 rounded select-none pointer-events-none sticky float-right z-10">
-        HTML
+        {language.toUpperCase()}
       </div>
     </div>
   );
