@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { CloudLightning, Sun, Moon, Monitor, LogOut, User as UserIcon } from 'lucide-react';
+import { CloudLightning, Sun, Moon, Monitor, LogOut, User as UserIcon, Settings, ChevronDown } from 'lucide-react';
 import { NAV_ITEMS, APP_NAME } from '../constants';
 import { User } from '../types';
 
@@ -16,6 +16,8 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem('theme') as Theme) || 'system';
   });
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -31,6 +33,22 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleThemeChange = (newTheme: Theme) => {
+    setTheme(newTheme);
+  };
 
   return (
     <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
@@ -67,50 +85,105 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               ))}
             </div>
 
-            {/* Theme Switcher */}
-            <div className="flex items-center bg-background border border-border rounded-lg p-1">
-              <button
-                onClick={() => setTheme('light')}
-                className={`p-1.5 rounded-md transition-colors ${theme === 'light' ? 'bg-card text-yellow-400 shadow-sm' : 'text-gray-400 hover:text-foreground'}`}
-                title="Mode Clair"
-              >
-                <Sun className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setTheme('system')}
-                className={`p-1.5 rounded-md transition-colors ${theme === 'system' ? 'bg-card text-blue-400 shadow-sm' : 'text-gray-400 hover:text-foreground'}`}
-                title="Mode Système"
-              >
-                <Monitor className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setTheme('dark')}
-                className={`p-1.5 rounded-md transition-colors ${theme === 'dark' ? 'bg-card text-purple-400 shadow-sm' : 'text-gray-400 hover:text-foreground'}`}
-                title="Mode Sombre"
-              >
-                <Moon className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* User Profile */}
+            {/* User Profile Dropdown */}
             {user && (
-              <div className="flex items-center gap-3 pl-4 border-l border-border">
+              <div className="relative pl-4 border-l border-border" ref={dropdownRef}>
                 <button
-                  onClick={() => navigate('/profile')}
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors group"
                 >
                   <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center text-brand-400 font-bold border border-brand-500/30 group-hover:border-brand-500 transition-colors">
                     {user.name?.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm font-medium hidden lg:block text-foreground">{user.name}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
-                <button
-                  onClick={onLogout}
-                  className="p-2 text-gray-400 hover:text-red-400 transition-colors rounded-lg hover:bg-red-400/10"
-                  title="Déconnexion"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
+
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+                    {/* User Info */}
+                    <div className="px-4 py-3 border-b border-border bg-background/50">
+                      <p className="text-sm font-medium text-foreground">{user.name}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                    </div>
+
+                    {/* Theme Selector */}
+                    <div className="px-4 py-3 border-b border-border">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Thème</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleThemeChange('light')}
+                          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${theme === 'light'
+                              ? 'bg-brand-500/10 text-brand-400 border border-brand-500/30'
+                              : 'bg-background text-muted-foreground hover:text-foreground hover:bg-border'
+                            }`}
+                        >
+                          <Sun className="w-4 h-4" />
+                          <span className="text-xs">Clair</span>
+                        </button>
+                        <button
+                          onClick={() => handleThemeChange('system')}
+                          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${theme === 'system'
+                              ? 'bg-brand-500/10 text-brand-400 border border-brand-500/30'
+                              : 'bg-background text-muted-foreground hover:text-foreground hover:bg-border'
+                            }`}
+                        >
+                          <Monitor className="w-4 h-4" />
+                          <span className="text-xs">Auto</span>
+                        </button>
+                        <button
+                          onClick={() => handleThemeChange('dark')}
+                          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${theme === 'dark'
+                              ? 'bg-brand-500/10 text-brand-400 border border-brand-500/30'
+                              : 'bg-background text-muted-foreground hover:text-foreground hover:bg-border'
+                            }`}
+                        >
+                          <Moon className="w-4 h-4" />
+                          <span className="text-xs">Sombre</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          navigate('/profile');
+                          setIsDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-background transition-colors"
+                      >
+                        <UserIcon className="w-4 h-4 text-muted-foreground" />
+                        Mon profil
+                      </button>
+                      <button
+                        onClick={() => {
+                          navigate('/profile');
+                          setIsDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-background transition-colors"
+                      >
+                        <Settings className="w-4 h-4 text-muted-foreground" />
+                        Paramètres
+                      </button>
+                    </div>
+
+                    {/* Logout */}
+                    <div className="border-t border-border">
+                      <button
+                        onClick={() => {
+                          onLogout();
+                          setIsDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-red-400/10 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Déconnexion
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
