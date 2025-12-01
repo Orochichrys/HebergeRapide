@@ -1,4 +1,3 @@
-```typescript
 import React, { useState, useEffect } from 'react';
 import { Upload, Rocket, FileCode, X } from 'lucide-react';
 import { isSubdomainTaken } from '../services/storageService';
@@ -199,4 +198,3 @@ const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
 };
 
 export default DeployForm;
-```
