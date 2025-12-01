@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Deployment } from '../types';
+import { Deployment, ProjectFile } from '../types';
 
 interface SitePreviewProps {
   deployment: Deployment;
@@ -14,36 +14,72 @@ const SitePreview: React.FC<SitePreviewProps> = ({ deployment }) => {
       const doc = iframe.contentDocument || iframe.contentWindow?.document;
 
       if (doc) {
-        // Build complete HTML with CSS and JS injected
-        let html = deployment.code;
+        let htmlContent = '';
+        const files = deployment.files || [];
 
-        // Inject CSS if provided
-        if (deployment.css) {
-          const styleTag = `<style>${deployment.css}</style>`;
-          // Insert before </head> if exists, otherwise at the beginning
-          if (html.includes('</head>')) {
-            html = html.replace('</head>', `${styleTag}</head>`);
-          } else if (html.includes('<head>')) {
-            html = html.replace('<head>', `<head>${styleTag}`);
-          } else {
-            html = `<head>${styleTag}</head>${html}`;
-          }
+        // Determine entry point
+        const indexFile = files.find(f => f.name === 'index.html' || f.name === 'index.htm')
+          || files.find(f => f.type === 'html');
+
+        if (indexFile) {
+          htmlContent = indexFile.content;
+        } else {
+          // Fallback to legacy code field
+          htmlContent = deployment.code;
         }
 
-        // Inject JS if provided
-        if (deployment.js) {
-          const scriptTag = `<script>${deployment.js}</script>`;
-          // Insert before </body> if exists, otherwise at the end
-          if (html.includes('</body>')) {
-            html = html.replace('</body>', `${scriptTag}</body>`);
+        // Create Blob URLs for assets
+        const blobUrls: Record<string, string> = {};
+        files.forEach(file => {
+          if (file.type !== 'html') {
+            const blob = new Blob([file.content], { type: file.type === 'css' ? 'text/css' : 'application/javascript' });
+            blobUrls[file.name] = URL.createObjectURL(blob);
+          }
+        });
+
+        // Replace relative links with Blob URLs
+        // Replace CSS links: <link href="style.css">
+        htmlContent = htmlContent.replace(/<link[^>]+href=["']([^"']+)["'][^>]*>/g, (match, href) => {
+          if (blobUrls[href]) {
+            return match.replace(href, blobUrls[href]);
+          }
+          return match;
+        });
+
+        // Replace JS scripts: <script src="script.js">
+        htmlContent = htmlContent.replace(/<script[^>]+src=["']([^"']+)["'][^>]*>/g, (match, src) => {
+          if (blobUrls[src]) {
+            return match.replace(src, blobUrls[src]);
+          }
+          return match;
+        });
+
+        // Legacy injection fallback (if no files array or specific legacy fields exist)
+        if (!deployment.files && deployment.css) {
+          const styleTag = `<style>${deployment.css}</style>`;
+          if (htmlContent.includes('</head>')) {
+            htmlContent = htmlContent.replace('</head>', `${styleTag}</head>`);
           } else {
-            html += scriptTag;
+            htmlContent = `<head>${styleTag}</head>${htmlContent}`;
+          }
+        }
+        if (!deployment.files && deployment.js) {
+          const scriptTag = `<script>${deployment.js}</script>`;
+          if (htmlContent.includes('</body>')) {
+            htmlContent = htmlContent.replace('</body>', `${scriptTag}</body>`);
+          } else {
+            htmlContent += scriptTag;
           }
         }
 
         doc.open();
-        doc.write(html);
+        doc.write(htmlContent);
         doc.close();
+
+        // Cleanup Blob URLs
+        return () => {
+          Object.values(blobUrls).forEach(url => URL.revokeObjectURL(url));
+        };
       }
     }
   }, [deployment]);

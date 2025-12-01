@@ -81,14 +81,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(403).json({ error: 'Forbidden: You do not own this site' });
             }
 
-            const { code, css, js } = req.body;
+            const { code, css, js, files } = req.body;
 
             // Update the deployment object
             const updatedDeployment = {
                 ...deploymentData,
-                code: code !== undefined ? code : deploymentData.code,
-                css: css !== undefined ? css : deploymentData.css,
-                js: js !== undefined ? js : deploymentData.js,
+                files: files !== undefined ? files : deploymentData.files,
+                // Update legacy fields if files are provided
+                code: files ? (files.find((f: any) => f.type === 'html')?.content || deploymentData.code) : (code !== undefined ? code : deploymentData.code),
+                css: files ? (files.find((f: any) => f.type === 'css')?.content || deploymentData.css) : (css !== undefined ? css : deploymentData.css),
+                js: files ? (files.find((f: any) => f.type === 'js')?.content || deploymentData.js) : (js !== undefined ? js : deploymentData.js),
                 lastModified: Date.now()
             };
 

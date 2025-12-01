@@ -8,7 +8,7 @@ import SitePreview from './components/SitePreview';
 import AuthForm from './components/AuthForm';
 import UserProfile from './components/UserProfile';
 import CodeEditorPage from './components/CodeEditorPage';
-import { Deployment, User } from './types';
+import { Deployment, User, ProjectFile } from './types';
 import { DEMO_DELAY } from './constants';
 
 const AppContent: React.FC = () => {
@@ -77,7 +77,7 @@ const AppContent: React.FC = () => {
     localStorage.setItem('auth_user', JSON.stringify(updatedUser));
   };
 
-  const handleDeploy = async (name: string, subdomain: string, code: string, css?: string, js?: string) => {
+  const handleDeploy = async (name: string, subdomain: string, files: ProjectFile[]) => {
     if (!token) return;
     setIsDeploying(true);
 
@@ -90,18 +90,20 @@ const AppContent: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ name, html: code, css, js })
+        body: JSON.stringify({ name, files })
       });
 
       if (response.ok) {
         const data = await response.json();
+        // Find main code for backward compatibility
+        const mainHtml = files.find(f => f.type === 'html')?.content || '';
+
         const newDeployment: Deployment = {
           id: data.id,
           subdomain: data.subdomain,
           name,
-          code,
-          css,
-          js,
+          code: mainHtml,
+          files,
           createdAt: Date.now(),
           status: data.status,
           url: data.url,

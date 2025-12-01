@@ -1,103 +1,106 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { kv } from '@vercel/kv';
 import jwt from 'jsonwebtoken';
+import { nanoid } from 'nanoid';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-const verifyToken = (token: string): any => {
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    return null;
-  }
-};
+interface ProjectFile {
+  name: string;
+  content: string;
+  type: 'html' | 'css' | 'js';
+}
 
 interface DeployRequest {
   name: string;
-  html: string;
-  css?: string;
-  js?: string;
+  files: ProjectFile[];
+}
+
+interface JWTPayload {
+  userId: string;
+  email: string;
 }
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  // Seulement POST
+  // Handle CORS
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  );
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Vérifier l'autorisation
+  // Verify authentication
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized: Missing or invalid Authorization header' });
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const token = authHeader.replace('Bearer ', '');
-  const decoded = verifyToken(token);
+  const token = authHeader.substring(7);
+  let decoded: JWTPayload;
 
-  if (!decoded) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+  try {
+    decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid token' });
   }
 
-  const userId = decoded.userId;
+  const { name, files }: DeployRequest = req.body;
 
-  // Valider le body
-  const { name, html, css, js }: DeployRequest = req.body;
-
-  if (!name || !html) {
-    return res.status(400).json({ error: 'Missing required fields: name and html are required' });
+  if (!name || !files || !Array.isArray(files) || files.length === 0) {
+    return res.status(400).json({ error: 'Missing name or files' });
   }
 
-  // Générer un ID et un subdomain
-  const id = Math.random().toString(36).substr(2, 9);
-  const subdomain = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') || id;
+  const id = nanoid(10);
+  const subdomain = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') + '-' + nanoid(4).toLowerCase();
 
-  // Créer le déploiement
-  const origin = req.headers.origin || req.headers.host
-    ? `https://${req.headers.host || 'heberge-rapide.vercel.app'}`
-    : 'https://heberge-rapide.vercel.app';
+  // Find main HTML for backward compatibility
+  const mainHtml = files.find(f => f.type === 'html')?.content || '';
+  const mainCss = files.find(f => f.type === 'css')?.content || '';
+  const mainJs = files.find(f => f.type === 'js')?.content || '';
 
   const deployment = {
     id,
     subdomain,
     name,
-    code: html,
-    css,
-    js,
+    code: mainHtml, // Backward compatibility
+    css: mainCss,   // Backward compatibility
+    js: mainJs,     // Backward compatibility
+    files,          // New field
     createdAt: Date.now(),
     status: 'live',
-    url: `${origin}/#/s/${subdomain}`,
-    visitors: 0,
-    userId // Associer à l'utilisateur
+    url: `https://${subdomain}.heberge-rapide.vercel.app`,
+    userId: decoded.userId,
+    visitors: 0
   };
 
   try {
-    // Stocker le déploiement dans KV
+    // Save deployment
     await kv.set(`deployment:${id}`, JSON.stringify(deployment));
 
-    // Ajouter l'ID à la liste des déploiements de cet utilisateur
-    await kv.sadd(`user:${userId}:deployments`, id);
+    // Add to user's deployments list
+    const userDeploymentsKey = `user:${decoded.userId}:deployments`;
+    await kv.sadd(userDeploymentsKey, id);
 
-    // Stocker aussi par subdomain pour la recherche rapide
+    // Map subdomain to deployment ID for fast lookup
     await kv.set(`subdomain:${subdomain}`, id);
 
-    // Retourner la réponse avec URL courte (sans données encodées)
-    return res.status(200).json({
-      id: deployment.id,
-      status: deployment.status,
-      url: deployment.url, // URL courte maintenant
-      subdomain: deployment.subdomain
-    });
-  } catch (error: any) {
-    console.error('Error storing deployment:', error);
-    // Si KV n'est pas configuré, retourner une erreur explicite
-    if (error.message?.includes('KV') || error.message?.includes('Redis')) {
-      return res.status(500).json({
-        error: 'Database not configured. Please set up Vercel KV in your project settings.'
-      });
-    }
+    return res.status(200).json(deployment);
+  } catch (error) {
+    console.error('Error saving to Redis:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

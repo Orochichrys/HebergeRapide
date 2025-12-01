@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, ArrowLeft, Sparkles, Send, FileCode, Palette, Braces, Loader2 } from 'lucide-react';
+import { Save, ArrowLeft, Sparkles, Send, FileCode, Loader2, Plus, Trash2 } from 'lucide-react';
 import CodeEditor from './CodeEditor';
-import { Deployment } from '../types';
+import { Deployment, ProjectFile } from '../types';
 import { analyzeCodeWithGemini } from '../services/aiService';
 
 interface CodeEditorPageProps {
     token: string | null;
 }
-
-type EditorTab = 'html' | 'css' | 'js';
 
 interface ChatMessage {
     role: 'user' | 'assistant';
@@ -24,10 +22,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({ token }) => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    const [code, setCode] = useState('');
-    const [css, setCss] = useState('');
-    const [js, setJs] = useState('');
-    const [activeTab, setActiveTab] = useState<EditorTab>('html');
+    const [files, setFiles] = useState<ProjectFile[]>([]);
+    const [activeFileName, setActiveFileName] = useState<string>('');
 
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [userMessage, setUserMessage] = useState('');
@@ -50,9 +46,22 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({ token }) => {
             if (response.ok) {
                 const data = await response.json();
                 setDeployment(data);
-                setCode(data.code || '');
-                setCss(data.css || '');
-                setJs(data.js || '');
+
+                if (data.files && data.files.length > 0) {
+                    setFiles(data.files);
+                    // Set index.html as active if exists, otherwise first file
+                    const indexFile = data.files.find((f: ProjectFile) => f.name === 'index.html' || f.name === 'index.htm');
+                    setActiveFileName(indexFile ? indexFile.name : data.files[0].name);
+                } else {
+                    // Backward compatibility: Create files from legacy fields
+                    const newFiles: ProjectFile[] = [];
+                    if (data.code) newFiles.push({ name: 'index.html', content: data.code, type: 'html' });
+                    if (data.css) newFiles.push({ name: 'style.css', content: data.css, type: 'css' });
+                    if (data.js) newFiles.push({ name: 'script.js', content: data.js, type: 'js' });
+
+                    setFiles(newFiles);
+                    if (newFiles.length > 0) setActiveFileName(newFiles[0].name);
+                }
             } else {
                 console.error('Failed to fetch deployment');
                 navigate('/');
@@ -77,9 +86,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({ token }) => {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    code,
-                    css,
-                    js
+                    files
                 })
             });
 
@@ -109,19 +116,12 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({ token }) => {
         setIsAiThinking(true);
 
         try {
-            // Construire le contexte pour l'IA
-            const context = `
-HTML:
-${code}
-
-CSS:
-${css}
-
-JS:
-${js}
-
-Question de l'utilisateur: ${userMessage}
-`;
+            // Build context from all files
+            let context = "Voici les fichiers du projet :\n\n";
+            files.forEach(f => {
+                context += `--- ${f.name} (${f.type}) ---\n${f.content}\n\n`;
+            });
+            context += `Question de l'utilisateur: ${userMessage}`;
 
             const analysis = await analyzeCodeWithGemini(context);
 
@@ -143,27 +143,42 @@ Question de l'utilisateur: ${userMessage}
         }
     };
 
-    const getCurrentEditorContent = () => {
-        switch (activeTab) {
-            case 'html': return code;
-            case 'css': return css;
-            case 'js': return js;
-        }
+    const getActiveFile = () => {
+        return files.find(f => f.name === activeFileName);
     };
 
-    const setCurrentEditorContent = (value: string) => {
-        switch (activeTab) {
-            case 'html': setCode(value); break;
-            case 'css': setCss(value); break;
-            case 'js': setJs(value); break;
-        }
+    const updateActiveFileContent = (newContent: string) => {
+        setFiles(prev => prev.map(f =>
+            f.name === activeFileName ? { ...f, content: newContent } : f
+        ));
     };
 
-    const getPlaceholder = () => {
-        switch (activeTab) {
-            case 'html': return '<!-- Votre code HTML ici -->';
-            case 'css': return '/* Votre CSS ici */';
-            case 'js': return '// Votre JavaScript ici';
+    const addNewFile = () => {
+        const name = prompt('Nom du fichier (ex: about.html, style.css) :');
+        if (!name) return;
+
+        if (files.some(f => f.name === name)) {
+            alert('Ce fichier existe déjà.');
+            return;
+        }
+
+        const ext = name.split('.').pop()?.toLowerCase();
+        let type: 'html' | 'css' | 'js' = 'html';
+        if (ext === 'css') type = 'css';
+        else if (ext === 'js') type = 'js';
+
+        const newFile: ProjectFile = { name, content: '', type };
+        setFiles(prev => [...prev, newFile]);
+        setActiveFileName(name);
+    };
+
+    const deleteFile = (e: React.MouseEvent, fileName: string) => {
+        e.stopPropagation();
+        if (confirm(`Supprimer ${fileName} ?`)) {
+            setFiles(prev => prev.filter(f => f.name !== fileName));
+            if (activeFileName === fileName) {
+                setActiveFileName(files.find(f => f.name !== fileName)?.name || '');
+            }
         }
     };
 
@@ -183,10 +198,12 @@ Question de l'utilisateur: ${userMessage}
         );
     }
 
+    const activeFile = getActiveFile();
+
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background flex flex-col">
             {/* Header */}
-            <div className="border-b border-border bg-card">
+            <div className="border-b border-border bg-card flex-shrink-0">
                 <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <button
@@ -221,45 +238,59 @@ Question de l'utilisateur: ${userMessage}
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-80px)]">
-                {/* Code Editor - 2/3 */}
-                <div className="lg:col-span-2 bg-card border border-border rounded-lg overflow-hidden flex flex-col">
-                    <div className="border-b border-border p-4">
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setActiveTab('html')}
-                                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'html' ? 'bg-brand-500 text-white' : 'bg-background text-muted-foreground hover:text-foreground border border-border'
-                                    }`}
-                            >
-                                <FileCode className="w-4 h-4" /> HTML
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('css')}
-                                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'css' ? 'bg-brand-500 text-white' : 'bg-background text-muted-foreground hover:text-foreground border border-border'
-                                    }`}
-                            >
-                                <Palette className="w-4 h-4" /> CSS
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('js')}
-                                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'js' ? 'bg-brand-500 text-white' : 'bg-background text-muted-foreground hover:text-foreground border border-border'
-                                    }`}
-                            >
-                                <Braces className="w-4 h-4" /> JavaScript
-                            </button>
-                        </div>
+            <div className="flex-1 flex overflow-hidden">
+                {/* File Explorer Sidebar */}
+                <div className="w-64 bg-card border-r border-border flex flex-col">
+                    <div className="p-4 border-b border-border flex items-center justify-between">
+                        <h3 className="font-semibold text-foreground">Fichiers</h3>
+                        <button onClick={addNewFile} className="text-brand-400 hover:text-brand-300">
+                            <Plus className="w-5 h-5" />
+                        </button>
                     </div>
-                    <div className="flex-1 overflow-hidden">
-                        <CodeEditor
-                            code={getCurrentEditorContent()}
-                            onChange={setCurrentEditorContent}
-                            placeholder={getPlaceholder()}
-                        />
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                        {files.map(file => (
+                            <div
+                                key={file.name}
+                                onClick={() => setActiveFileName(file.name)}
+                                className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${activeFileName === file.name
+                                        ? 'bg-brand-500/10 text-brand-400'
+                                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                    <FileCode className="w-4 h-4 flex-shrink-0" />
+                                    <span className="truncate text-sm">{file.name}</span>
+                                </div>
+                                <button
+                                    onClick={(e) => deleteFile(e, file.name)}
+                                    className="opacity-0 group-hover:opacity-100 hover:text-red-400"
+                                >
+                                    <Trash2 className="w-3 h-3" />
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 </div>
 
-                {/* AI Chat - 1/3 */}
-                <div className="bg-card border border-border rounded-lg overflow-hidden flex flex-col">
+                {/* Editor Area */}
+                <div className="flex-1 flex flex-col min-w-0">
+                    {activeFile ? (
+                        <div className="flex-1 overflow-hidden">
+                            <CodeEditor
+                                code={activeFile.content}
+                                onChange={updateActiveFileContent}
+                                placeholder={`Contenu de ${activeFile.name}`}
+                            />
+                        </div>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                            Sélectionnez un fichier pour l'éditer
+                        </div>
+                    )}
+                </div>
+
+                {/* AI Chat Sidebar */}
+                <div className="w-80 bg-card border-l border-border flex flex-col">
                     <div className="border-b border-border p-4">
                         <h3 className="font-semibold text-foreground flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-purple-400" />
@@ -271,7 +302,7 @@ Question de l'utilisateur: ${userMessage}
                         {chatMessages.length === 0 && (
                             <div className="text-center text-muted-foreground py-8">
                                 <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                                <p className="text-sm">Posez-moi des questions sur votre code !</p>
+                                <p className="text-sm">Je connais tous vos fichiers ! Posez-moi une question.</p>
                             </div>
                         )}
 
@@ -279,8 +310,8 @@ Question de l'utilisateur: ${userMessage}
                             <div
                                 key={idx}
                                 className={`p-3 rounded-lg ${msg.role === 'user'
-                                        ? 'bg-brand-500/10 border border-brand-500/30 ml-8'
-                                        : 'bg-purple-500/10 border border-purple-500/30 mr-8'
+                                    ? 'bg-brand-500/10 border border-brand-500/30 ml-8'
+                                    : 'bg-purple-500/10 border border-purple-500/30 mr-8'
                                     }`}
                             >
                                 <p className="text-sm text-foreground whitespace-pre-wrap">{msg.content}</p>

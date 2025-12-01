@@ -1,10 +1,17 @@
+export interface ProjectFile {
+  name: string;
+  content: string;
+  type: 'html' | 'css' | 'js';
+}
+
 export interface Deployment {
   id: string;
   subdomain: string;
   name: string;
-  code: string; // HTML content
-  css?: string; // Optional CSS content
-  js?: string;  // Optional JavaScript content
+  code: string; // Main HTML content (kept for backward compatibility)
+  css?: string; // Optional CSS content (kept for backward compatibility)
+  js?: string;  // Optional JavaScript content (kept for backward compatibility)
+  files?: ProjectFile[]; // New: Array of all project files
   createdAt: number;
   status: 'live' | 'building' | 'error';
   url: string;
