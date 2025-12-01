@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { CloudLightning, Sun, Moon, Monitor, LogOut, User as UserIcon, Settings, ChevronDown } from 'lucide-react';
+import { CloudLightning, Sun, Moon, Monitor, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { NAV_ITEMS, APP_NAME } from '../constants';
 import { User } from '../types';
 
@@ -147,16 +147,6 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
 
                     {/* Menu Items */}
                     <div className="py-1">
-                      <button
-                        onClick={() => {
-                          navigate('/profile');
-                          setIsDropdownOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-background transition-colors"
-                      >
-                        <UserIcon className="w-4 h-4 text-muted-foreground" />
-                        Mon profil
-                      </button>
                       <button
                         onClick={() => {
                           navigate('/profile');
