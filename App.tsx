@@ -23,6 +23,26 @@ const AppContent: React.FC = () => {
   const path = window.location.hash;
   const isViewingSite = path.startsWith('#/s/');
 
+  // Handle Google OAuth callback
+useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const tokenParam = urlParams.get('token');
+  const userParam = urlParams.get('user');
+  const errorParam = urlParams.get('error');
+  if (errorParam) {
+    alert('Erreur lors de la connexion avec Google. Veuillez réessayer.');
+    window.history.replaceState({}, document.title, window.location.pathname);
+  } else if (tokenParam && userParam) {
+    try {
+      const userData = JSON.parse(decodeURIComponent(userParam));
+      handleLogin(tokenParam, userData);
+      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+    } catch (error) {
+      console.error('Error parsing Google auth data:', error);
+    }
+  }
+}, []);
+
   useEffect(() => {
     if (token) {
       fetchDeployments();
