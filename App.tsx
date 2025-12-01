@@ -7,6 +7,7 @@ import ApiDocs from './components/ApiDocs';
 import SitePreview from './components/SitePreview';
 import AuthForm from './components/AuthForm';
 import UserProfile from './components/UserProfile';
+import CodeEditorPage from './components/CodeEditorPage';
 import { Deployment, User } from './types';
 import { DEMO_DELAY } from './constants';
 
@@ -76,7 +77,7 @@ const AppContent: React.FC = () => {
     localStorage.setItem('auth_user', JSON.stringify(updatedUser));
   };
 
-  const handleDeploy = async (name: string, subdomain: string, code: string) => {
+  const handleDeploy = async (name: string, subdomain: string, code: string, css?: string, js?: string) => {
     if (!token) return;
     setIsDeploying(true);
 
@@ -89,7 +90,7 @@ const AppContent: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ name, html: code })
+        body: JSON.stringify({ name, html: code, css, js })
       });
 
       if (response.ok) {
@@ -99,6 +100,8 @@ const AppContent: React.FC = () => {
           subdomain: data.subdomain,
           name,
           code,
+          css,
+          js,
           createdAt: Date.now(),
           status: data.status,
           url: data.url,
@@ -186,6 +189,10 @@ const AppContent: React.FC = () => {
 
           <Route path="/profile" element={
             user ? <UserProfile user={user} token={token} onUpdateUser={handleUpdateUser} /> : null
+          } />
+
+          <Route path="/edit/:id" element={
+            <CodeEditorPage token={token} />
           } />
 
           <Route path="/api-docs" element={
