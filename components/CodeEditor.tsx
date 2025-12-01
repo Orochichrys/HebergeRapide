@@ -17,14 +17,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, placeholder }) 
   };
 
   return (
-    <div className="relative font-mono text-sm bg-dark-bg border border-dark-border rounded-lg overflow-hidden prism-editor focus-within:ring-2 focus-within:ring-brand-500 transition-shadow">
+    <div className="relative h-full font-mono text-sm bg-dark-bg border border-dark-border rounded-lg overflow-auto prism-editor focus-within:ring-2 focus-within:ring-brand-500 transition-shadow custom-scrollbar">
       <Editor
         value={code}
         onValueChange={onChange}
         highlight={highlight}
         padding={16}
         placeholder={placeholder}
-        className="min-h-[300px] text-foreground"
+        className="min-h-full text-foreground"
         style={{
           fontFamily: '"Fira Code", "Fira Mono", monospace',
           fontSize: 14,
@@ -32,7 +32,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange, placeholder }) 
         }}
         textareaClassName="focus:outline-none"
       />
-      <div className="absolute top-2 right-2 text-[10px] text-muted-foreground bg-card px-2 py-1 rounded select-none pointer-events-none">
+      <div className="absolute top-2 right-2 text-[10px] text-muted-foreground bg-card px-2 py-1 rounded select-none pointer-events-none sticky float-right z-10">
         HTML
       </div>
     </div>

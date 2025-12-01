@@ -201,7 +201,7 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({ token }) => {
     const activeFile = getActiveFile();
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="h-screen bg-background flex flex-col overflow-hidden">
             {/* Header */}
             <div className="border-b border-border bg-card flex-shrink-0">
                 <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -253,8 +253,8 @@ const CodeEditorPage: React.FC<CodeEditorPageProps> = ({ token }) => {
                                 key={file.name}
                                 onClick={() => setActiveFileName(file.name)}
                                 className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${activeFileName === file.name
-                                        ? 'bg-brand-500/10 text-brand-400'
-                                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                                    ? 'bg-brand-500/10 text-brand-400'
+                                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                                     }`}
                             >
                                 <div className="flex items-center gap-2 overflow-hidden">
