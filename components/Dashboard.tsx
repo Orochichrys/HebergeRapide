@@ -49,8 +49,8 @@ const Dashboard: React.FC<DashboardProps> = ({ deployments, onDelete }) => {
               </div>
 
               <h3 className="text-lg font-bold text-foreground mb-1 truncate">{deploy.name}</h3>
-              <a href={deploy.url} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-brand-400 flex items-center gap-1 mb-4 truncate">
-                {deploy.url} <ExternalLink className="w-3 h-3" />
+              <a href={`/#/s/${deploy.subdomain}`} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-brand-400 flex items-center gap-1 mb-4 truncate">
+                {deploy.subdomain}.heberge-rapide.vercel.app <ExternalLink className="w-3 h-3" />
               </a>
 
               <div className="grid grid-cols-2 gap-4 mb-6">

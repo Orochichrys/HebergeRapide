@@ -82,7 +82,7 @@ export default async function handler(
     files,          // New field
     createdAt: Date.now(),
     status: 'live',
-    url: `https://${subdomain}.heberge-rapide.vercel.app`,
+    url: `https://heberge-rapide.vercel.app/#/s/${subdomain}`,
     userId: decoded.userId,
     visitors: 0
   };
