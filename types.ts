@@ -2,7 +2,9 @@ export interface Deployment {
   id: string;
   subdomain: string;
   name: string;
-  code: string; // Storing HTML directly for this demo
+  code: string; // HTML content
+  css?: string; // Optional CSS content
+  js?: string;  // Optional JavaScript content
   createdAt: number;
   status: 'live' | 'building' | 'error';
   url: string;

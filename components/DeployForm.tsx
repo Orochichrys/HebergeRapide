@@ -1,25 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Code, Rocket, Sparkles, CheckCircle, AlertTriangle, FileCode, Globe } from 'lucide-react';
+import { Upload, Code, Rocket, Sparkles, CheckCircle, AlertTriangle, FileCode, Palette, Braces } from 'lucide-react';
 import { analyzeCodeWithGemini } from '../services/aiService';
 import { isSubdomainTaken } from '../services/storageService';
 import { CodeAnalysis } from '../types';
 import CodeEditor from './CodeEditor';
 
 interface DeployFormProps {
-  onDeploy: (name: string, subdomain: string, code: string) => Promise<void>;
+  onDeploy: (name: string, subdomain: string, code: string, css?: string, js?: string) => Promise<void>;
   isDeploying: boolean;
 }
+
+type EditorTab = 'html' | 'css' | 'js';
 
 const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
   const [siteName, setSiteName] = useState('');
   const [subdomain, setSubdomain] = useState('');
   const [code, setCode] = useState('');
+  const [css, setCss] = useState('');
+  const [js, setJs] = useState('');
+  const [activeTab, setActiveTab] = useState<EditorTab>('html');
   const [mode, setMode] = useState<'upload' | 'editor'>('editor');
   const [analysis, setAnalysis] = useState<CodeAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [subdomainError, setSubdomainError] = useState('');
 
-  // Auto-generate subdomain from site name if subdomain is empty or matches previous auto-gen
+  // Auto-generate subdomain from site name
   useEffect(() => {
     if (siteName) {
       const slug = siteName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
@@ -36,18 +41,32 @@ const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          setCode(event.target.result as string);
-          setSiteName(file.name.split('.')[0]);
-          setMode('editor'); // Switch to editor after upload to show preview
+          const content = event.target.result as string;
+          const ext = file.name.split('.').pop()?.toLowerCase();
+
+          if (ext === 'html' || ext === 'htm') {
+            setCode(content);
+            setSiteName(file.name.split('.')[0]);
+            setActiveTab('html');
+          } else if (ext === 'css') {
+            setCss(content);
+            setActiveTab('css');
+          } else if (ext === 'js') {
+            setJs(content);
+            setActiveTab('js');
+          }
         }
       };
       reader.readAsText(file);
-    }
+    });
+    setMode('editor');
   };
 
   const handleAnalyze = async () => {
@@ -83,7 +102,31 @@ const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
     }
 
     if (siteName && subdomain && code) {
-      onDeploy(siteName, subdomain, code);
+      onDeploy(siteName, subdomain, code, css || undefined, js || undefined);
+    }
+  };
+
+  const getCurrentEditorContent = () => {
+    switch (activeTab) {
+      case 'html': return code;
+      case 'css': return css;
+      case 'js': return js;
+    }
+  };
+
+  const setCurrentEditorContent = (value: string) => {
+    switch (activeTab) {
+      case 'html': setCode(value); break;
+      case 'css': setCss(value); break;
+      case 'js': setJs(value); break;
+    }
+  };
+
+  const getPlaceholder = () => {
+    switch (activeTab) {
+      case 'html': return '<!-- Collez votre code HTML ici -->\n<html>\n  <body>\n    <h1>Bonjour le monde!</h1>\n  </body>\n</html>';
+      case 'css': return '/* Ajoutez votre CSS ici */\nbody {\n  font-family: Arial, sans-serif;\n  margin: 0;\n  padding: 20px;\n}';
+      case 'js': return '// Ajoutez votre JavaScript ici\nconsole.log("Hello, World!");';
     }
   };
 
@@ -95,7 +138,7 @@ const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
             <Rocket className="text-brand-400" />
             Nouveau Déploiement
           </h2>
-          <p className="text-muted-foreground mt-1">Hébergez votre HTML statique en quelques secondes.</p>
+          <p className="text-muted-foreground mt-1">Hébergez votre site HTML, CSS et JavaScript en quelques secondes.</p>
         </div>
 
         <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -137,42 +180,68 @@ const DeployForm: React.FC<DeployFormProps> = ({ onDeploy, isDeploying }) => {
                 <button
                   type="button"
                   onClick={() => setMode('editor')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${mode === 'editor' ? 'bg-brand-500 text-white' : 'bg-background text-gray-400 hover:text-foreground'
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${mode === 'editor' ? 'bg-brand-500 text-white' : 'bg-background text-muted-foreground hover:text-foreground'
                     }`}
                 >
-                  <Code className="w-4 h-4" /> Éditeur Intelligent
+                  <Code className="w-4 h-4" /> Éditeur
                 </button>
                 <button
                   type="button"
                   onClick={() => setMode('upload')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${mode === 'upload' ? 'bg-brand-500 text-white' : 'bg-background text-gray-400 hover:text-foreground'
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${mode === 'upload' ? 'bg-brand-500 text-white' : 'bg-background text-muted-foreground hover:text-foreground'
                     }`}
                 >
-                  <Upload className="w-4 h-4" /> Upload Fichier
+                  <Upload className="w-4 h-4" /> Upload Fichiers
                 </button>
               </div>
 
               {mode === 'editor' ? (
-                <CodeEditor
-                  code={code}
-                  onChange={setCode}
-                  placeholder="<!-- Collez votre code HTML ici -->
-<html>
-  <body>
-    <h1>Bonjour le monde!</h1>
-  </body>
-</html>"
-                />
+                <>
+                  {/* Tab Navigation */}
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('html')}
+                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'html' ? 'bg-brand-500 text-white' : 'bg-background text-muted-foreground hover:text-foreground border border-border'
+                        }`}
+                    >
+                      <FileCode className="w-4 h-4" /> HTML
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('css')}
+                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'css' ? 'bg-brand-500 text-white' : 'bg-background text-muted-foreground hover:text-foreground border border-border'
+                        }`}
+                    >
+                      <Palette className="w-4 h-4" /> CSS
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('js')}
+                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'js' ? 'bg-brand-500 text-white' : 'bg-background text-muted-foreground hover:text-foreground border border-border'
+                        }`}
+                    >
+                      <Braces className="w-4 h-4" /> JavaScript
+                    </button>
+                  </div>
+
+                  <CodeEditor
+                    code={getCurrentEditorContent()}
+                    onChange={setCurrentEditorContent}
+                    placeholder={getPlaceholder()}
+                  />
+                </>
               ) : (
                 <div className="h-[300px] border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center text-muted-foreground hover:border-brand-500 hover:bg-background/50 transition-all relative">
                   <input
                     type="file"
                     onChange={handleFileUpload}
-                    accept=".html,.htm"
+                    accept=".html,.htm,.css,.js"
+                    multiple
                     className="absolute inset-0 opacity-0 cursor-pointer"
                   />
                   <FileCode className="w-12 h-12 mb-2 text-muted-foreground" />
-                  <p>Glissez votre index.html ici</p>
+                  <p>Glissez vos fichiers HTML, CSS, JS ici</p>
                   <p className="text-xs text-muted-foreground mt-2">ou cliquez pour parcourir</p>
                 </div>
               )}

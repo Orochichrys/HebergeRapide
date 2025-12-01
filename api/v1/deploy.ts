@@ -15,6 +15,8 @@ const verifyToken = (token: string): any => {
 interface DeployRequest {
   name: string;
   html: string;
+  css?: string;
+  js?: string;
 }
 
 export default async function handler(
@@ -42,7 +44,7 @@ export default async function handler(
   const userId = decoded.userId;
 
   // Valider le body
-  const { name, html }: DeployRequest = req.body;
+  const { name, html, css, js }: DeployRequest = req.body;
 
   if (!name || !html) {
     return res.status(400).json({ error: 'Missing required fields: name and html are required' });
@@ -62,6 +64,8 @@ export default async function handler(
     subdomain,
     name,
     code: html,
+    css,
+    js,
     createdAt: Date.now(),
     status: 'live',
     url: `${origin}/#/s/${subdomain}`,
