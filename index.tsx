@@ -2,8 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
-// PrismJS themes should be imported from the installed package
-import 'prismjs/themes/prism-tomorrow.css';
 
 const rootElement = document.getElementById('root');
 

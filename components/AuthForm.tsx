@@ -21,12 +21,16 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin }) => {
         try {
             const action = isLogin ? 'login' : 'register';
             const endpoint = `/api/v1/auth?action=${action}`;
-            const body = isLogin ? { email, password } : { name, email, password };
+            const payload = isLogin
+                ? { email: email.trim(), password: password.trim() }
+                : { name: name.trim(), email: email.trim(), password: password.trim() };
+
+            console.log('Sending auth request:', { action, endpoint, payload });
 
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
+                body: JSON.stringify(payload),
             });
 
             const data = await response.json();
