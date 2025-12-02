@@ -3,9 +3,20 @@ import { kv } from '@vercel/kv';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
-import { logActivity } from '../utils/activityLogger';
-
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// Inline activity logger (console-only, no external deps)
+async function logActivity(
+  type: string,
+  metadata: any,
+  req?: VercelRequest,
+  user?: { id: string; email: string; name: string }
+): Promise<void> {
+  try {
+    console.log(`[ACTIVITY] ${type} by ${user?.email || 'anonymous'}`, metadata);
+  } catch (error) {
+    console.error('[ACTIVITY] Failed to log:', error);
+  }
+}
 
 // Admin emails configuration
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'emmanuelbissa0000@gmail.com')
