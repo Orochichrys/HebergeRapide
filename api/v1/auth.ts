@@ -1,14 +1,3 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { kv } from '@vercel/kv';
-import jwt from 'jsonwebtoken';
-import { nanoid } from 'nanoid';
-import bcrypt from 'bcryptjs';
-import { logActivity } from '../utils/activityLogger';
-
-// ⚠️ IMPORTANT : Assurez-vous que JWT_SECRET est défini dans les variables d'environnement Vercel
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-// Admin emails configuration
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'emmanuelbissa0000@gmail.com').split(',').map(e => e.trim().toLowerCase());
 // Helper to check if email is admin
 const isAdminEmail = (email: string): boolean => {
