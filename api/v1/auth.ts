@@ -3,9 +3,17 @@ import { kv } from '@vercel/kv';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import bcrypt from 'bcryptjs';
+import { logActivity } from '../utils/activityLogger';
 
 // ⚠️ IMPORTANT : Assurez-vous que JWT_SECRET est défini dans les variables d'environnement Vercel
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Admin emails configuration
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'emmanuelbissa0000@gmail.com').split(',').map(e => e.trim().toLowerCase());
+// Helper to check if email is admin
+const isAdminEmail = (email: string): boolean => {
+    return ADMIN_EMAILS.includes(email.toLowerCase());
+};
 
 // Google OAuth Configuration
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -129,18 +137,17 @@ async function handleLogin(req: VercelRequest, res: VercelResponse) {
         console.log(`[LOGIN] Password valid, generating token...`);
 
         // Générer le token JWT
+        const role = isAdminEmail(user.email) ? 'admin' : 'user';
         const token = jwt.sign(
-            { userId: user.id, email: user.email },
+            { userId: user.id, email: user.email, role },
             JWT_SECRET,
             { expiresIn: '30d' }
         );
-
-        // Retourner l'utilisateur sans le mot de passe
         const { password: _, ...userWithoutPassword } = user;
-
         console.log(`[LOGIN] Success for: ${email}`);
-
-        return res.json({ token, user: userWithoutPassword });
+        // Log activity
+        await logActivity('login', { email, method: 'password' }, req, { id: user.id, email: user.email, name: user.name });
+        return res.json({ token, user: { ...userWithoutPassword, role } });
     } catch (error: any) {
         console.error('[LOGIN] Error:', error);
         return res.status(500).json({ error: 'Internal server error', details: error.message });
@@ -196,6 +203,9 @@ async function handleRegister(req: VercelRequest, res: VercelResponse) {
         await kv.set(`user:email:${email}`, userId);
 
         console.log(`[REGISTER] Success for: ${email}`);
+
+        // Log activity
+        await logActivity('register', { email, name }, req, { id: userId, email, name });
 
         return res.status(201).json({ message: 'User created successfully' });
     } catch (error: any) {
@@ -333,15 +343,19 @@ async function handleGoogleCallback(req: VercelRequest, res: VercelResponse) {
             }
         }
 
+        const role = isAdminEmail(googleUser.email) ? 'admin' : 'user';
         const token = jwt.sign(
-            { userId, email: googleUser.email },
+            { userId, email: googleUser.email, role },
             JWT_SECRET,
             { expiresIn: '30d' }
         );
-
+        // Log activity
+        const activityType = userIdFromEmail ? 'login' : 'register';
+        await logActivity(activityType, { email: googleUser.email, method: 'google' }, req, { id: userId, email: googleUser.email, name: user.name });
         console.log(`[GOOGLE_CALLBACK] Redirecting to frontend with token`);
-
-        res.redirect(`${frontendUrl}/?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+        // Add role to user object
+        const userWithRole = { ...user, role };
+        res.redirect(`${frontendUrl}/?token=${token}&user=${encodeURIComponent(JSON.stringify(userWithRole))}`);
     } catch (error: any) {
         console.error('[GOOGLE_CALLBACK] Error:', error);
         res.redirect(`${frontendUrl}/?error=google_auth_failed`);

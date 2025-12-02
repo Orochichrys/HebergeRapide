@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Dashboard from './components/Dashboard';
 import DeployForm from './components/DeployForm';
@@ -8,6 +8,7 @@ import SitePreview from './components/SitePreview';
 import AuthForm from './components/AuthForm';
 import UserProfile from './components/UserProfile';
 import CodeEditorPage from './components/CodeEditorPage';
+import AdminDashboard from './components/AdminDashboard';
 import { Deployment, User, ProjectFile } from './types';
 import { DEMO_DELAY } from './constants';
 
@@ -24,24 +25,24 @@ const AppContent: React.FC = () => {
   const isViewingSite = path.startsWith('#/s/');
 
   // Handle Google OAuth callback
-useEffect(() => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const tokenParam = urlParams.get('token');
-  const userParam = urlParams.get('user');
-  const errorParam = urlParams.get('error');
-  if (errorParam) {
-    alert('Erreur lors de la connexion avec Google. Veuillez réessayer.');
-    window.history.replaceState({}, document.title, window.location.pathname);
-  } else if (tokenParam && userParam) {
-    try {
-      const userData = JSON.parse(decodeURIComponent(userParam));
-      handleLogin(tokenParam, userData);
-      window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-    } catch (error) {
-      console.error('Error parsing Google auth data:', error);
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenParam = urlParams.get('token');
+    const userParam = urlParams.get('user');
+    const errorParam = urlParams.get('error');
+    if (errorParam) {
+      alert('Erreur lors de la connexion avec Google. Veuillez réessayer.');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (tokenParam && userParam) {
+      try {
+        const userData = JSON.parse(decodeURIComponent(userParam));
+        handleLogin(tokenParam, userData);
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+      } catch (error) {
+        console.error('Error parsing Google auth data:', error);
+      }
     }
-  }
-}, []);
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -219,6 +220,10 @@ useEffect(() => {
 
           <Route path="/api-docs" element={
             <ApiDocs />
+          } />
+
+          <Route path="/admin" element={
+            user?.role === 'admin' ? <AdminDashboard token={token} /> : <Navigate to="/" replace />
           } />
         </Routes>
       </main>
