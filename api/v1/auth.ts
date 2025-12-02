@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { randomUUID } from 'crypto';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-// Inline activity logger (console-only, no external deps)
+// Inline activity logger with KV support
 async function logActivity(
   type: string,
   metadata: any,
@@ -12,9 +12,37 @@ async function logActivity(
   user?: { id: string; email: string; name: string }
 ): Promise<void> {
   try {
-    console.log(`[ACTIVITY] ${type} by ${user?.email || 'anonymous'}`, metadata);
+    const timestamp = Date.now();
+    const activityId = `activity:${timestamp}:${randomUUID()}`;
+    
+    const activity = {
+      id: activityId,
+      type,
+      metadata,
+      timestamp,
+      user: user ? { id: user.id, email: user.email, name: user.name } : null,
+      ip: req?.headers['x-forwarded-for'] || req?.headers['x-real-ip'] || 'unknown'
+    };
+    // Save to KV with TTL of 30 days (robust: won't throw on failure)
+    await kv.set(activityId, JSON.stringify(activity), { ex: 30 * 24 * 60 * 60 }).catch(() => {});
+    
+    // Add to activities list
+    const activitiesKey = 'activities:recent';
+    const recentActivitiesData = await kv.get(activitiesKey).catch(() => '[]');
+    const recentActivities = typeof recentActivitiesData === 'string' 
+      ? JSON.parse(recentActivitiesData) 
+      : recentActivitiesData || [];
+    
+    recentActivities.unshift(activityId);
+    
+    // Keep only last 100 activities
+    const trimmed = recentActivities.slice(0, 100);
+    await kv.set(activitiesKey, JSON.stringify(trimmed)).catch(() => {});
+    
+    console.log(`[ACTIVITY] ${type} by ${user?.email || 'anonymous'} - Saved to KV`);
   } catch (error) {
     console.error('[ACTIVITY] Failed to log:', error);
+    // Never throw - logging failures should not break auth
   }
 }
 
