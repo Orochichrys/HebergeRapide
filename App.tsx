@@ -23,197 +23,215 @@ const AppContent: React.FC = () => {
   const navigate = useNavigate();
   const path = window.location.hash;
   const isViewingSite = path.startsWith('#/s/');
-} catch (error) {
-  console.error('Error parsing Google auth data:', error);
-}
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenParam = urlParams.get('token');
+    const userParam = urlParams.get('user');
+    const errorParam = urlParams.get('error');
+    const errorDetails = urlParams.get('details');
+
+    if (errorParam) {
+      const message = errorDetails ? decodeURIComponent(errorDetails) : 'Erreur lors de la connexion avec Google. Veuillez réessayer.';
+      alert(`Erreur Google Auth: ${message}`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (tokenParam && userParam) {
+      try {
+        const userData = JSON.parse(decodeURIComponent(userParam));
+        handleLogin(tokenParam, userData);
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+      } catch (error) {
+        console.error('Error parsing Google auth data:', error);
+      }
     }
   }, []);
 
-useEffect(() => {
-  if (token) {
-    fetchDeployments();
-  }
-
-  // Initialize Grok AI with Environment Variable
-  const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-  if (openRouterKey) {
-    import('./services/aiService').then(({ initAI }) => {
-      initAI(openRouterKey);
-    });
-  }
-}, [token]);
-
-const fetchDeployments = async () => {
-  if (!token) return;
-
-  try {
-    const response = await fetch('/api/v1/sites', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (response.ok) {
-      const data = await response.json();
-      setDeployments(data.sites);
-    } else if (response.status === 401) {
-      handleLogout();
+  useEffect(() => {
+    if (token) {
+      fetchDeployments();
     }
-  } catch (error) {
-    console.error('Error fetching from API:', error);
-  }
-};
 
-const handleLogin = (newToken: string, newUser: User) => {
-  setToken(newToken);
-  setUser(newUser);
-  localStorage.setItem('auth_token', newToken);
-  localStorage.setItem('auth_user', JSON.stringify(newUser));
-};
+    // Initialize Grok AI with Environment Variable
+    const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    if (openRouterKey) {
+      import('./services/aiService').then(({ initAI }) => {
+        initAI(openRouterKey);
+      });
+    }
+  }, [token]);
 
-const handleLogout = () => {
-  setToken(null);
-  setUser(null);
-  localStorage.removeItem('auth_token');
-  localStorage.removeItem('auth_user');
-  navigate('/');
-};
+  const fetchDeployments = async () => {
+    if (!token) return;
 
-const handleUpdateUser = (updatedUser: User) => {
-  setUser(updatedUser);
-  localStorage.setItem('auth_user', JSON.stringify(updatedUser));
-};
+    try {
+      const response = await fetch('/api/v1/sites', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDeployments(data.sites);
+      } else if (response.status === 401) {
+        handleLogout();
+      }
+    } catch (error) {
+      console.error('Error fetching from API:', error);
+    }
+  };
 
-const handleDeploy = async (name: string, subdomain: string, files: ProjectFile[]) => {
-  if (!token) return;
-  setIsDeploying(true);
+  const handleLogin = (newToken: string, newUser: User) => {
+    setToken(newToken);
+    setUser(newUser);
+    localStorage.setItem('auth_token', newToken);
+    localStorage.setItem('auth_user', JSON.stringify(newUser));
+  };
 
-  await new Promise(resolve => setTimeout(resolve, DEMO_DELAY));
+  const handleLogout = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    navigate('/');
+  };
 
-  try {
-    const response = await fetch('/api/v1/deploy', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ name, files })
-    });
+  const handleUpdateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+  };
 
-    if (response.ok) {
-      const data = await response.json();
-      // Find main code for backward compatibility
-      const mainHtml = files.find(f => f.type === 'html')?.content || '';
+  const handleDeploy = async (name: string, subdomain: string, files: ProjectFile[]) => {
+    if (!token) return;
+    setIsDeploying(true);
 
-      const newDeployment: Deployment = {
-        id: data.id,
-        subdomain: data.subdomain,
-        name,
-        code: mainHtml,
-        files,
-        createdAt: Date.now(),
-        status: data.status,
-        url: data.url,
-        visitors: 0
-      };
-      setDeployments(prev => [newDeployment, ...prev]);
-      setIsDeploying(false);
-      navigate('/');
-    } else {
-      console.error('Deployment failed');
+    await new Promise(resolve => setTimeout(resolve, DEMO_DELAY));
+
+    try {
+      const response = await fetch('/api/v1/deploy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, files })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Find main code for backward compatibility
+        const mainHtml = files.find(f => f.type === 'html')?.content || '';
+
+        const newDeployment: Deployment = {
+          id: data.id,
+          subdomain: data.subdomain,
+          name,
+          code: mainHtml,
+          files,
+          createdAt: Date.now(),
+          status: data.status,
+          url: data.url,
+          visitors: 0
+        };
+        setDeployments(prev => [newDeployment, ...prev]);
+        setIsDeploying(false);
+        navigate('/');
+      } else {
+        console.error('Deployment failed');
+        setIsDeploying(false);
+      }
+    } catch (error) {
+      console.error('Error deploying to API:', error);
       setIsDeploying(false);
     }
-  } catch (error) {
-    console.error('Error deploying to API:', error);
-    setIsDeploying(false);
-  }
-};
+  };
 
-const handleDelete = async (id: string) => {
-  if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce site ?')) {
-    return;
-  }
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce site ?')) {
+      return;
+    }
 
-  // Optimistic update
-  setDeployments(prev => prev.filter(d => d.id !== id));
+    // Optimistic update
+    setDeployments(prev => prev.filter(d => d.id !== id));
 
-  try {
-    const response = await fetch(`/api/v1/sites/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
+    try {
+      const response = await fetch(`/api/v1/sites/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        // Revert optimistic update on error
+        await fetchDeployments();
+        if (response.status === 404) {
+          alert('Site introuvable');
+        } else if (response.status === 403) {
+          alert('Vous n\'êtes pas autorisé à supprimer ce site');
+        } else {
+          alert('Erreur lors de la suppression du site');
+        }
       }
-    });
-
-    if (!response.ok) {
+    } catch (error) {
+      console.error('Error deleting site:', error);
       // Revert optimistic update on error
       await fetchDeployments();
-      if (response.status === 404) {
-        alert('Site introuvable');
-      } else if (response.status === 403) {
-        alert('Vous n\'êtes pas autorisé à supprimer ce site');
-      } else {
-        alert('Erreur lors de la suppression du site');
-      }
+      alert('Erreur lors de la suppression du site');
     }
-  } catch (error) {
-    console.error('Error deleting site:', error);
-    // Revert optimistic update on error
-    await fetchDeployments();
-    alert('Erreur lors de la suppression du site');
-  }
-};
+  };
 
-// Visualisation de site : aucun background
-if (isViewingSite) {
-  return (
-    <Routes>
-      <Route path="/s/:subdomain" element={<SiteRouteWrapper />} />
-    </Routes>
-  );
-}
-
-if (!token) {
-  return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
+  // Visualisation de site : aucun background
+  if (isViewingSite) {
+    return (
       <Routes>
-        <Route path="*" element={<AuthForm onLogin={handleLogin} />} />
+        <Route path="/s/:subdomain" element={<SiteRouteWrapper />} />
       </Routes>
+    );
+  }
+
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-background text-foreground font-sans">
+        <Routes>
+          <Route path="*" element={<AuthForm onLogin={handleLogin} />} />
+        </Routes>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-brand-500/30 transition-colors duration-300">
+      <Navbar user={user} onLogout={handleLogout} />
+      <main>
+        <Routes>
+          <Route path="/" element={
+            <Dashboard deployments={deployments} onDelete={handleDelete} />
+          } />
+
+          <Route path="/deploy" element={
+            <DeployForm onDeploy={handleDeploy} isDeploying={isDeploying} />
+          } />
+
+          <Route path="/profile" element={
+            user ? <UserProfile user={user} token={token} onUpdateUser={handleUpdateUser} /> : null
+          } />
+
+          <Route path="/edit/:id" element={
+            <CodeEditorPage token={token} />
+          } />
+
+          <Route path="/api-docs" element={
+            <ApiDocs />
+          } />
+
+          <Route path="/admin" element={
+            user?.role === 'admin' ? <AdminDashboard token={token} /> : <Navigate to="/" replace />
+          } />
+        </Routes>
+      </main>
     </div>
   );
-}
-
-return (
-  <div className="min-h-screen bg-background text-foreground font-sans selection:bg-brand-500/30 transition-colors duration-300">
-    <Navbar user={user} onLogout={handleLogout} />
-    <main>
-      <Routes>
-        <Route path="/" element={
-          <Dashboard deployments={deployments} onDelete={handleDelete} />
-        } />
-
-        <Route path="/deploy" element={
-          <DeployForm onDeploy={handleDeploy} isDeploying={isDeploying} />
-        } />
-
-        <Route path="/profile" element={
-          user ? <UserProfile user={user} token={token} onUpdateUser={handleUpdateUser} /> : null
-        } />
-
-        <Route path="/edit/:id" element={
-          <CodeEditorPage token={token} />
-        } />
-
-        <Route path="/api-docs" element={
-          <ApiDocs />
-        } />
-
-        <Route path="/admin" element={
-          user?.role === 'admin' ? <AdminDashboard token={token} /> : <Navigate to="/" replace />
-        } />
-      </Routes>
-    </main>
-  </div>
-);
 };
 
 const SiteRouteWrapper = () => {
