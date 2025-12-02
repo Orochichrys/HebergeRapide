@@ -146,7 +146,21 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                     </div>
 
                     {/* Menu Items */}
-                    <div className="py-1">
+                     <div className="py-1">
+                      {/* Admin Dashboard Link - Only for admins */}
+                      {user.role === 'admin' && (
+                        <button
+                          onClick={() => {
+                            navigate('/admin');
+                            setIsDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2 text-sm text-brand-400 hover:bg-brand-500/10 transition-colors font-medium"
+                        >
+                          <Settings className="w-4 h-4" />
+                          Admin Dashboard
+                        </button>
+                      )}
+                      
                       <button
                         onClick={() => {
                           navigate('/profile');
