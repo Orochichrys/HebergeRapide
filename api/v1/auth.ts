@@ -340,6 +340,202 @@ async function handleGoogleCallback(req: VercelRequest, res: VercelResponse) {
         );
         // Log activity
         const activityType = userIdFromEmail ? 'login' : 'register';
+        ```javascript
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { name, email, password } = req.body;
+
+    console.log(`[REGISTER] Attempting registration for: ${ email } `);
+
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    // Validation du mot de passe
+    if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    try {
+        // Vérifier si l'email existe déjà
+        const existingUser = await kv.get(`user: email:${ email } `);
+
+        if (existingUser) {
+            console.log(`[REGISTER] Email already exists: ${ email } `);
+            return res.status(400).json({ error: 'Email already registered' });
+        }
+
+        console.log(`[REGISTER] Hashing password...`);
+
+        // Hacher le mot de passe
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const userId = nanoid();
+
+        const user = {
+            id: userId,
+            name,
+            email,
+            password: hashedPassword,
+            createdAt: Date.now(),
+        };
+
+        console.log(`[REGISTER] Saving user data...`);
+
+        // Sauvegarder l'utilisateur
+        await kv.set(`user:${ userId } `, JSON.stringify(user));
+        await kv.set(`user: email:${ email } `, userId);
+
+        console.log(`[REGISTER] Success for: ${ email } `);
+
+        // Log activity
+        await logActivity('register', { email, name }, req, { id: userId, email, name });
+
+        return res.status(201).json({ message: 'User created successfully' });
+    } catch (error: any) {
+        console.error('[REGISTER] Error:', error);
+        return res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+}
+
+// Google OAuth initiation
+async function handleGoogleOAuth(req: VercelRequest, res: VercelResponse) {
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    if (!GOOGLE_CLIENT_ID) {
+        return res.status(500).json({ error: 'Google OAuth not configured' });
+    }
+
+    const redirectUri = getRedirectUri(req);
+    console.log(`[GOOGLE_OAUTH] Redirect URI: ${ redirectUri } `);
+
+    const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    googleAuthUrl.searchParams.append('client_id', GOOGLE_CLIENT_ID);
+    googleAuthUrl.searchParams.append('redirect_uri', redirectUri);
+    googleAuthUrl.searchParams.append('response_type', 'code');
+    googleAuthUrl.searchParams.append('scope', 'email profile');
+    googleAuthUrl.searchParams.append('access_type', 'offline');
+    googleAuthUrl.searchParams.append('prompt', 'consent');
+
+    res.redirect(googleAuthUrl.toString());
+}
+
+// Google OAuth callback
+async function handleGoogleCallback(req: VercelRequest, res: VercelResponse) {
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { code, error } = req.query;
+    const frontendUrl = getFrontendUrl(req);
+    const redirectUri = getRedirectUri(req);
+
+    console.log(`[GOOGLE_CALLBACK] Frontend URL: ${ frontendUrl } `);
+    console.log(`[GOOGLE_CALLBACK] Redirect URI: ${ redirectUri } `);
+
+    if (error) {
+        console.error(`[GOOGLE_CALLBACK] Error from Google: ${ error } `);
+        return res.redirect(`${ frontendUrl }/?error=google_auth_failed`);
+    }
+
+    if (!code || typeof code !== 'string') {
+        return res.status(400).json({ error: 'Missing authorization code' });
+    }
+
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+        return res.status(500).json({ error: 'Google OAuth not configured' });
+    }
+
+    try {
+        console.log(`[GOOGLE_CALLBACK] Exchanging code for token...`);
+
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                code,
+                client_id: GOOGLE_CLIENT_ID,
+                client_secret: GOOGLE_CLIENT_SECRET,
+                redirect_uri: redirectUri,
+                grant_type: 'authorization_code',
+            }),
+        });
+
+        if (!tokenResponse.ok) {
+            const errorText = await tokenResponse.text();
+            console.error(`[GOOGLE_CALLBACK] Token exchange failed:`, errorText);
+            throw new Error('Failed to exchange code for token');
+        }
+
+        const tokens: GoogleTokenResponse = await tokenResponse.json();
+
+        console.log(`[GOOGLE_CALLBACK] Getting user info...`);
+
+        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${tokens.access_token}` },
+        });
+
+        if (!userInfoResponse.ok) {
+            throw new Error('Failed to get user info');
+        }
+
+        const googleUser: GoogleUserInfo = await userInfoResponse.json();
+
+        console.log(`[GOOGLE_CALLBACK] User info retrieved for: ${googleUser.email}`);
+
+        let userIdFromEmail = await kv.get(`user:email:${googleUser.email}`);
+        let userId: string;
+        let user: any;
+
+        if (!userIdFromEmail) {
+            // Créer un nouvel utilisateur
+            userId = nanoid();
+            user = {
+                id: userId,
+                email: googleUser.email,
+                name: googleUser.name,
+                picture: googleUser.picture,
+                googleId: googleUser.id,
+                createdAt: Date.now(),
+            };
+
+            await kv.set(`user:${userId}`, JSON.stringify(user));
+            await kv.set(`user:email:${googleUser.email}`, userId);
+            await kv.set(`user:google:${googleUser.id}`, userId);
+
+            console.log(`[GOOGLE_CALLBACK] New user created: ${googleUser.email}`);
+        } else {
+            // Utilisateur existant - récupérer et mettre à jour avec les infos Google
+            userId = typeof userIdFromEmail === 'string' ? userIdFromEmail : (userIdFromEmail as any).id;
+            const userData = await kv.get(`user:${userId}`);
+            user = typeof userData === 'string' ? JSON.parse(userData) : userData;
+
+            console.log(`[GOOGLE_CALLBACK] Existing user found: ${googleUser.email}`);
+
+            // Mettre à jour avec les informations Google si ce n'est pas déjà fait
+            if (!user.googleId) {
+                user.googleId = googleUser.id;
+                user.picture = googleUser.picture;
+                user.name = googleUser.name; // Mettre à jour le nom aussi
+
+                await kv.set(`user:${userId}`, JSON.stringify(user));
+                await kv.set(`user:google:${googleUser.id}`, userId);
+
+                console.log(`[GOOGLE_CALLBACK] Updated existing user with Google data: ${googleUser.email}`);
+            }
+        }
+
+        const role = isAdminEmail(googleUser.email) ? 'admin' : 'user';
+        const token = jwt.sign(
+            { userId, email: googleUser.email, role },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+        // Log activity
+        const activityType = userIdFromEmail ? 'login' : 'register';
         await logActivity(activityType, { email: googleUser.email, method: 'google' }, req, { id: userId, email: googleUser.email, name: user.name });
         console.log(`[GOOGLE_CALLBACK] Redirecting to frontend with token`);
         // Add role to user object
@@ -347,6 +543,7 @@ async function handleGoogleCallback(req: VercelRequest, res: VercelResponse) {
         res.redirect(`${frontendUrl}/?token=${token}&user=${encodeURIComponent(JSON.stringify(userWithRole))}`);
     } catch (error: any) {
         console.error('[GOOGLE_CALLBACK] Error:', error);
-        res.redirect(`${frontendUrl}/?error=google_auth_failed`);
+        res.redirect(`${frontendUrl}/?error=google_auth_failed&details=${encodeURIComponent(error.message)}`);
     }
 }
+```
