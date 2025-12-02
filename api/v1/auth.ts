@@ -92,7 +92,7 @@ async function handleLogin(req: VercelRequest, res: VercelResponse) {
     try {
         // Récupérer l'ID utilisateur depuis l'email
         const userId = await kv.get(`user:email:${email}`);
-        
+
         if (!userId || typeof userId !== 'string') {
             console.log(`[LOGIN] User not found: ${email}`);
             return res.status(401).json({ error: 'Invalid credentials' });
@@ -100,7 +100,7 @@ async function handleLogin(req: VercelRequest, res: VercelResponse) {
 
         // Récupérer les données de l'utilisateur
         const userData = await kv.get(`user:${userId}`);
-        
+
         if (!userData) {
             console.log(`[LOGIN] User data not found for ID: ${userId}`);
             return res.status(401).json({ error: 'Invalid credentials' });
@@ -110,9 +110,17 @@ async function handleLogin(req: VercelRequest, res: VercelResponse) {
 
         console.log(`[LOGIN] User found, checking password...`);
 
+        // Vérifier si l'utilisateur a un mot de passe (peut être un compte Google uniquement)
+        if (!user.password) {
+            console.log(`[LOGIN] User has no password (Google-only account): ${email}`);
+            return res.status(401).json({
+                error: 'Ce compte utilise Google Auth. Veuillez vous connecter avec Google.'
+            });
+        }
+
         // Vérifier le mot de passe
         const isValid = await bcrypt.compare(password, user.password);
-        
+
         if (!isValid) {
             console.log(`[LOGIN] Invalid password for: ${email}`);
             return res.status(401).json({ error: 'Invalid credentials' });
@@ -129,9 +137,9 @@ async function handleLogin(req: VercelRequest, res: VercelResponse) {
 
         // Retourner l'utilisateur sans le mot de passe
         const { password: _, ...userWithoutPassword } = user;
-        
+
         console.log(`[LOGIN] Success for: ${email}`);
-        
+
         return res.json({ token, user: userWithoutPassword });
     } catch (error: any) {
         console.error('[LOGIN] Error:', error);
@@ -161,7 +169,7 @@ async function handleRegister(req: VercelRequest, res: VercelResponse) {
     try {
         // Vérifier si l'email existe déjà
         const existingUser = await kv.get(`user:email:${email}`);
-        
+
         if (existingUser) {
             console.log(`[REGISTER] Email already exists: ${email}`);
             return res.status(400).json({ error: 'Email already registered' });
@@ -283,10 +291,11 @@ async function handleGoogleCallback(req: VercelRequest, res: VercelResponse) {
 
         console.log(`[GOOGLE_CALLBACK] User info retrieved for: ${googleUser.email}`);
 
-        let user = await kv.get(`user:email:${googleUser.email}`);
+        let userIdFromEmail = await kv.get(`user:email:${googleUser.email}`);
         let userId: string;
+        let user: any;
 
-        if (!user) {
+        if (!userIdFromEmail) {
             // Créer un nouvel utilisateur
             userId = nanoid();
             user = {
@@ -304,11 +313,24 @@ async function handleGoogleCallback(req: VercelRequest, res: VercelResponse) {
 
             console.log(`[GOOGLE_CALLBACK] New user created: ${googleUser.email}`);
         } else {
-            userId = typeof user === 'string' ? user : (user as any).id;
+            // Utilisateur existant - récupérer et mettre à jour avec les infos Google
+            userId = typeof userIdFromEmail === 'string' ? userIdFromEmail : (userIdFromEmail as any).id;
             const userData = await kv.get(`user:${userId}`);
             user = typeof userData === 'string' ? JSON.parse(userData) : userData;
 
             console.log(`[GOOGLE_CALLBACK] Existing user found: ${googleUser.email}`);
+
+            // Mettre à jour avec les informations Google si ce n'est pas déjà fait
+            if (!user.googleId) {
+                user.googleId = googleUser.id;
+                user.picture = googleUser.picture;
+                user.name = googleUser.name; // Mettre à jour le nom aussi
+
+                await kv.set(`user:${userId}`, JSON.stringify(user));
+                await kv.set(`user:google:${googleUser.id}`, userId);
+
+                console.log(`[GOOGLE_CALLBACK] Updated existing user with Google data: ${googleUser.email}`);
+            }
         }
 
         const token = jwt.sign(
