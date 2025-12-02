@@ -14,6 +14,7 @@ interface ActivityLog {
 
 /**
  * Log an activity to Upstash KV
+ * Simplified version using only basic KV operations
  */
 export async function logActivity(
     type: ActivityLog['type'],
@@ -36,11 +37,16 @@ export async function logActivity(
             ip: req?.headers['x-forwarded-for'] as string || req?.headers['x-real-ip'] as string,
         };
 
-        // Store individual log
+        // Store individual log with TTL
         await kv.set(`activity:${id}`, JSON.stringify(log), { ex: 60 * 60 * 24 * 30 }); // 30 days TTL
 
-        // Add to sorted set for easy retrieval (score = timestamp)
-        await kv.zadd('activity:index', { score: timestamp, member: id });
+        // Store in a simple list (with timestamp prefix for sorting)
+        const indexKey = 'activity:list';
+        const existingList = await kv.get<string[]>(indexKey) || [];
+
+        // Add new entry at the beginning (newest first)
+        const newList = [id, ...existingList.slice(0, 499)]; // Keep only 500 most recent
+        await kv.set(indexKey, newList);
 
         console.log(`[ACTIVITY] Logged: ${type} by ${user?.email || 'anonymous'}`);
     } catch (error) {
@@ -54,16 +60,20 @@ export async function logActivity(
  */
 export async function getRecentActivities(limit: number = 50, offset: number = 0): Promise<ActivityLog[]> {
     try {
-        // Get IDs from sorted set (newest first)
-        const ids = await kv.zrange('activity:index', offset, offset + limit - 1, { rev: true });
+        // Get IDs from list
+        const indexKey = 'activity:list';
+        const ids = await kv.get<string[]>(indexKey) || [];
 
-        if (!ids || ids.length === 0) {
+        // Paginate
+        const paginatedIds = ids.slice(offset, offset + limit);
+
+        if (paginatedIds.length === 0) {
             return [];
         }
 
         // Fetch all logs
         const logs: ActivityLog[] = [];
-        for (const id of ids) {
+        for (const id of paginatedIds) {
             const logData = await kv.get(`activity:${id}`);
             if (logData) {
                 const log = typeof logData === 'string' ? JSON.parse(logData) : logData;
@@ -92,24 +102,24 @@ export async function getActivityStats(): Promise<{
         const oneDayAgo = now - 24 * 60 * 60 * 1000;
         const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-        // Get total count
-        const total = await kv.zcard('activity:index') || 0;
+        // Get all activities
+        const allLogs = await getRecentActivities(500, 0);
 
-        // Get counts by time range
-        const last24hCount = await kv.zcount('activity:index', oneDayAgo, now) || 0;
-        const last7dCount = await kv.zcount('activity:index', sevenDaysAgo, now) || 0;
+        // Calculate stats
+        const total = allLogs.length;
+        const last24h = allLogs.filter(log => log.timestamp >= oneDayAgo).length;
+        const last7d = allLogs.filter(log => log.timestamp >= sevenDaysAgo).length;
 
-        // Get recent activities to count by type
-        const recentLogs = await getRecentActivities(100);
+        // Count by type
         const byType: Record<string, number> = {};
-        recentLogs.forEach(log => {
+        allLogs.slice(0, 100).forEach(log => {
             byType[log.type] = (byType[log.type] || 0) + 1;
         });
 
         return {
             totalActivities: total,
-            last24h: last24hCount,
-            last7d: last7dCount,
+            last24h,
+            last7d,
             byType,
         };
     } catch (error) {
